@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import SortByAlphaIcon from "@mui/icons-material/SortByAlpha"; // Import icon sắp xếp
+import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 import "../styles/TonKho.css";
 import {
   Table,
@@ -13,26 +13,31 @@ import {
   TablePagination,
   Button,
   TextField,
-  ButtonGroup
+  ButtonGroup,
 } from "@mui/material";
 import { formatDateToDDMMYYYY } from "../utils/utils";
-import { Add } from "@mui/icons-material";
 import LichSuNhapKho from "./tonkho/LichSuNhapKho";
 import LichSuXuatKho from "./tonkho/LichSuXuatKho";
+import LichSuKiemKe from "./tonkho/LichSuKiemKe"; // Bạn cần tạo component này
+import ExcelTonKho from "./tonkho/ExcelTonKho";
+import { IconButton, Menu, MenuItem } from "@mui/material";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 const TonKho = () => {
   const [tonKhoData, setTonKhoData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(""); // Tìm kiếm
-  const [sortOrder, setSortOrder] = useState("asc"); // Sắp xếp
-  const [view, setView] = useState("all"); // Quản lý chế độ hiển thị
-  const [rowsPerPage, setRowsPerPage] = useState(10); // Số dòng hiển thị
-  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [view, setView] = useState("all");
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [openNhapModal, setOpenNhapModal] = useState(false);
   const [openXuatModal, setOpenXuatModal] = useState(false);
+  const [openKiemKeModal, setOpenKiemKeModal] = useState(false);
   const [selectedVatTuId, setSelectedVatTuId] = useState(null);
-
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuVatTuId, setMenuVatTuId] = useState(null);
 
   useEffect(() => {
     const fetchTonKho = async () => {
@@ -40,10 +45,9 @@ const TonKho = () => {
         const token = localStorage.getItem("token");
         const response = await axios.get("http://localhost:5000/tonkho", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         });
-        console.log("Tồn kho:", token); // Log dữ liệu nhận được
         setTonKhoData(response.data);
         setLoading(false);
       } catch (err) {
@@ -101,65 +105,54 @@ const TonKho = () => {
   // Lọc dữ liệu theo chế độ hiển thị
   const getViewData = () => {
     if (view === "sapHetHan") {
-      return sortedTonKhoData.filter((item) =>
-        getExpiringSoon(item.ngayhethan)
-      );
+      return sortedTonKhoData.filter((item) => getExpiringSoon(item.ngayhethan));
     }
     if (view === "daHetHan") {
       return sortedTonKhoData.filter((item) => getExpired(item.ngayhethan));
     }
     if (view === "soLuongIt") {
       return sortedTonKhoData.filter(
-        (item) =>
-          Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) < 30
+        (item) => Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) < 30
       );
     }
     if (view === "tonKhoDu") {
-      return sortedTonKhoData.filter((item) =>
-        Number(item.tonkhohientai) >= 30 && // Tồn kho >= 30
-        !getExpired(item.ngayhethan) && // Không hết hạn
-        !getExpiringSoon(item.ngayhethan) // Không sắp hết hạn
-      ); // Tồn kho ổn định
+      return sortedTonKhoData.filter(
+        (item) =>
+          Number(item.tonkhohientai) >= 30 &&
+          !getExpired(item.ngayhethan) &&
+          !getExpiringSoon(item.ngayhethan)
+      );
     }
     if (view === "hetVatTu") {
-      return sortedTonKhoData.filter(
-        (item) => Number(item.tonkhohientai) === 0
-      );
+      return sortedTonKhoData.filter((item) => Number(item.tonkhohientai) === 0);
     }
     return sortedTonKhoData;
   };
-
 
   const viewData = getViewData();
 
   // Tính toán dữ liệu phân trang
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedViewData = viewData.slice(
-    startIndex,
-    startIndex + rowsPerPage
-  );
-  // const totalPages = Math.ceil(viewData.length / rowsPerPage);
+  const paginatedViewData = viewData.slice(startIndex, startIndex + rowsPerPage);
 
   const getRowClass = (item) => {
-    if (getExpired(item.ngayhethan)) return "da-het-han"; // Đã hết hạn
-    if (Number(item.tonkhohientai) === 0) return "het-vat-tu"; // Hết vật tư
-    if (getExpiringSoon(item.ngayhethan)) return "sap-het-han"; // Sắp hết hạn: Màu cam
+    if (getExpired(item.ngayhethan)) return "da-het-han";
+    if (Number(item.tonkhohientai) === 0) return "het-vat-tu";
+    if (getExpiringSoon(item.ngayhethan)) return "sap-het-han";
     if (Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) < 30)
-      return "ton-kho-it"; // Tồn kho ít nhưng > 0
-    return "ton-kho-du"; // Tồn kho đủ/ổn định: Màu xanh lá
+      return "ton-kho-it";
+    return "ton-kho-du";
   };
 
-
-const handleOpenNhapModal = (idVatTu) => {
-    setSelectedVatTuId(idVatTu);
-    setOpenNhapModal(true);
+  // Thêm hàm mở menu
+  const handleMenuOpen = (event, idVatTu) => {
+    setAnchorEl(event.currentTarget);
+    setMenuVatTuId(idVatTu);
   };
-
-  const handleOpenXuatModal = (idVatTu) => {
-    setSelectedVatTuId(idVatTu);
-    setOpenXuatModal(true);
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuVatTuId(null);
   };
-
 
   return (
     <div>
@@ -249,6 +242,7 @@ const handleOpenNhapModal = (idVatTu) => {
               <TableCell>Tổng Xuất</TableCell>
               <TableCell>Tồn Kho Hiện Tại</TableCell>
               <TableCell>Tồn kho thực tế</TableCell>
+              <TableCell>Lịch sử </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -258,36 +252,18 @@ const handleOpenNhapModal = (idVatTu) => {
                 <TableCell>{item.tenvattu}</TableCell>
                 <TableCell>{item.tendanhmuc || "Không xác định"}</TableCell>
                 <TableCell>{formatDateToDDMMYYYY(item.ngayhethan)}</TableCell>
-                <TableCell>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    {item.tongnhap}
-                    <Add
-                      style={{
-                        color: "#f7ede2",
-                        cursor: "pointer",
-                        marginLeft: "5px",
-                        fontSize: "small",
-                      }}
-                      onClick={() => handleOpenNhapModal(item.idvattu)}
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    {item.tongxuat}
-                    <Add
-                      style={{
-                        color: "#f7ede2",
-                        cursor: "pointer",
-                        marginLeft: "5px",
-                        fontSize: "small",
-                      }}
-                      onClick={() => handleOpenXuatModal(item.idvattu)}
-                    />
-                  </div>
-                </TableCell>
+                <TableCell>{item.tongnhap}</TableCell>
+                <TableCell> {item.tongxuat}</TableCell>
                 <TableCell>{item.tonkhohientai}</TableCell>
-                <TableCell>{item.tonkhothucte || "Không xác định"}</TableCell>
+                <TableCell>{item.tonkhothucte}</TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleMenuOpen(e, item.idvattu)}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -308,19 +284,69 @@ const handleOpenNhapModal = (idVatTu) => {
         idVatTu={selectedVatTuId}
       />
 
-      {/* Phân trang */}
-      <TablePagination
-        component="div"
-        count={viewData.length}
-        page={currentPage - 1}
-        onPageChange={(e, newPage) => setCurrentPage(newPage + 1)}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
-        labelRowsPerPage="Số dòng"
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from}-${to} trên ${count !== -1 ? count : `nhiều hơn ${to}`}`
-        }
+      {/* Modal Lịch Sử Kiểm Kê */}
+      <LichSuKiemKe
+        open={openKiemKeModal}
+        onClose={() => setOpenKiemKeModal(false)}
+        idVatTu={selectedVatTuId}
       />
+      {/* Menu chọn lịch sử */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem
+          onClick={() => {
+            setSelectedVatTuId(menuVatTuId);
+            setOpenNhapModal(true);
+            handleMenuClose();
+          }}
+        >
+          Lịch sử nhập kho
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setSelectedVatTuId(menuVatTuId);
+            setOpenXuatModal(true);
+            handleMenuClose();
+          }}
+        >
+          Lịch sử xuất kho
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setSelectedVatTuId(menuVatTuId);
+            setOpenKiemKeModal(true);
+            handleMenuClose();
+          }}
+        >
+          Lịch sử kiểm kê
+        </MenuItem>
+      </Menu>
+      {/* Phân trang và Xuất Excel */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 16,
+        }}
+      >
+        <ExcelTonKho data={viewData} view={view} />
+        <TablePagination
+          component="div"
+          count={viewData.length}
+          page={currentPage - 1}
+          onPageChange={(e, newPage) => setCurrentPage(newPage + 1)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
+          labelRowsPerPage="Số dòng"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} trên ${count !== -1 ? count : `nhiều hơn ${to}`}`
+          }
+        />
+      </div>
     </div>
   );
 };

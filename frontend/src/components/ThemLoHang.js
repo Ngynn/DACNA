@@ -184,9 +184,9 @@ const ThemLoHang = () => {
                                     <TableRow key={row.idvattu}>
                                         <TableCell>{row.idvattu}</TableCell>
                                         <TableCell>{row.tenvattu}</TableCell>
-                                        <TableCell>{row.soluong_excel}</TableCell>
-                                        <TableCell>{row.tonkhohientai}</TableCell>
-                                        <TableCell>{soLuongSauKhiNhap}</TableCell>
+                                        <TableCell sx={{ background: "#fff3cd" }}>{row.soluong_excel}</TableCell>
+                                        <TableCell sx={{ background: "#d1ecf1" }}>{row.tonkhohientai}</TableCell>
+                                        <TableCell sx={{ background: "#d4edda" }}>{soLuongSauKhiNhap}</TableCell>
                                     </TableRow>
                                 );
                             })}

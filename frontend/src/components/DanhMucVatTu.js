@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
-import { SortByAlpha } from "@mui/icons-material";
+import { Edit, Delete, SortByAlpha } from "@mui/icons-material";
 import {
   Table,
   TableHead,
@@ -17,6 +17,7 @@ import {
   TablePagination,
 } from "@mui/material";
 import { formatDateToDDMMYYYY } from "../utils/utils"; // Import formatDateToDDMMYYYY function
+import ChucNangVatTu from "./danhmucvattu/ChucNangVatTu";
 
 const DanhMucVatTu = () => {
   const [danhMucVatTu, setDanhMucVatTu] = useState([]); // Danh sách danh mục
@@ -31,6 +32,8 @@ const DanhMucVatTu = () => {
   const [suppliers, setSuppliers] = useState([]); //xem ncc
   const [selectedVatTuId, setSelectedVatTuId] = useState(null); // ID vật tư được chọn
   const [viewingSuppliers, setViewingSuppliers] = useState(false); // Trạng thái xem nhà cung cấp
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editVatTu, setEditVatTu] = useState(null);
 
   const tenVatTu =
     vatTu.find((vt) => vt.idvattu === selectedVatTuId)?.tenvattu ||
@@ -61,7 +64,7 @@ const DanhMucVatTu = () => {
 
   const fetchVatTu = async (idDanhMuc) => {
     const token = localStorage.getItem("token");
-  
+
     try {
       const response = await axios.get(
         `http://localhost:5000/api/vattu?idDanhMuc=${idDanhMuc}`,
@@ -71,7 +74,7 @@ const DanhMucVatTu = () => {
           },
         }
       );
-  
+
       const vatTuWithSuppliers = await Promise.all(
         response.data.map(async (item) => {
           const supplierRes = await axios.get(
@@ -83,7 +86,7 @@ const DanhMucVatTu = () => {
           return { ...item, hasSuppliers: supplierRes.data.length > 0 };
         })
       );
-  
+
       setVatTu(vatTuWithSuppliers);
       setSelectedDanhMuc(idDanhMuc);
     } catch (err) {
@@ -132,6 +135,35 @@ const DanhMucVatTu = () => {
 
   //const totalPages = Math.ceil(filteredAndSortedVatTu.length / rowsPerPage);
 
+  const handleOpenAdd = () => {
+    setEditVatTu(null);
+    setOpenDialog(true);
+  };
+
+  const handleOpenEdit = (row) => {
+    setEditVatTu(row);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => setOpenDialog(false);
+
+  const reloadVatTu = () => {
+    if (selectedDanhMuc) fetchVatTu(selectedDanhMuc);
+  };
+
+  const handleDeleteVatTu = async (idvattu) => {
+  if (!window.confirm("Bạn có chắc chắn muốn xóa vật tư này?")) return;
+  const token = localStorage.getItem("token");
+  try {
+    await axios.delete(`http://localhost:5000/api/vattu/${idvattu}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    reloadVatTu();
+  } catch (err) {
+    alert(err.response?.data?.message || "Không thể xóa vật tư này!");
+  }
+};
+
   if (loading) {
     return <p>Đang tải dữ liệu...</p>;
   }
@@ -159,7 +191,12 @@ const DanhMucVatTu = () => {
                 selectedDanhMuc === danhMuc.iddanhmuc ? "primary" : "default"
               }
               onClick={() => fetchVatTu(danhMuc.iddanhmuc)}
-              style={{ marginRight: "10px", width: "500px", border:"1px solid #ccc" ,boxShadow: "none"}}
+              style={{
+                marginRight: "10px",
+                width: "500px",
+                border: "1px solid #ccc",
+                boxShadow: "none",
+              }}
             >
               {danhMuc.tendanhmuc}
             </Button>
@@ -197,6 +234,14 @@ const DanhMucVatTu = () => {
             }}
           />
         </Button>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleOpenAdd}
+          style={{ marginRight: "10px" }}
+        >
+          Thêm vật tư
+        </Button>
       </div>
 
       {vatTu.length > 0 ? (
@@ -211,8 +256,10 @@ const DanhMucVatTu = () => {
                 <TableCell>Ngày hết hạn</TableCell>
                 <TableCell>Cách lưu trữ</TableCell>
                 <TableCell>Tồn kho hiện tại</TableCell>
+                <TableCell>Tồn kho thực tế</TableCell>
                 <TableCell>Đơn giá nhập</TableCell>
                 <TableCell>Nhà cung cấp</TableCell>
+                <TableCell></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -225,20 +272,36 @@ const DanhMucVatTu = () => {
                   <TableCell>{formatDateToDDMMYYYY(item.ngayhethan)}</TableCell>
                   <TableCell>{item.cachluutru}</TableCell>
                   <TableCell>{item.tonkhohientai}</TableCell>
+                  <TableCell>{item.tonkhothucte}</TableCell>
                   <TableCell>{item.dongia}</TableCell>
                   <TableCell>
-                     <Button
-          variant="contained"
-          color={item.hasSuppliers ? "primary" : "default"} // Màu xanh nếu có NCC, xám nếu không
-          onClick={() => fetchSuppliers(item.idvattu)}
-          style={{
-            marginLeft: "10px",
-            backgroundColor: item.hasSuppliers ? "#007bff" : "#ccc", // Xanh hoặc xám
-            color: item.hasSuppliers ? "#fff" : "#000", // Màu chữ
-          }}
-        >
-          Xem
-        </Button>
+                    <Button
+                      variant="contained"
+                      color={item.hasSuppliers ? "primary" : "default"} // Màu xanh nếu có NCC, xám nếu không
+                      onClick={() => fetchSuppliers(item.idvattu)}
+                      style={{
+                        marginLeft: "10px",
+                        backgroundColor: item.hasSuppliers ? "#007bff" : "#ccc", // Xanh hoặc xám
+                        color: item.hasSuppliers ? "#fff" : "#000", // Màu chữ
+                      }}
+                    >
+                      Xem
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleOpenEdit(item)}
+                    >
+                      <Edit />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDeleteVatTu(item.idvattu)}
+                      title="Xóa"
+                    >
+                      <Delete />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -250,17 +313,26 @@ const DanhMucVatTu = () => {
             page={currentPage - 1}
             onPageChange={(e, newPage) => setCurrentPage(newPage + 1)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) =>setRowsPerPage(parseInt(e.target.value, 10))}
+            onRowsPerPageChange={(e) =>
+              setRowsPerPage(parseInt(e.target.value, 10))
+            }
             labelRowsPerPage="Số dòng"
             labelDisplayedRows={({ from, to, count }) =>
               `${from}-${to} trên ${count !== -1 ? count : `nhiều hơn ${to}`}`
             }
           />
-  
         </div>
       ) : (
         <p>Không có vật tư trong danh mục này.</p>
       )}
+
+      <ChucNangVatTu
+        open={openDialog}
+        handleClose={handleCloseDialog}
+        danhMucList={danhMucVatTu}
+        reloadVatTu={reloadVatTu}
+        editData={editVatTu}
+      />
 
       {/* show ncc */}
       {viewingSuppliers && (
