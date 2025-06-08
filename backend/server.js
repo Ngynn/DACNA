@@ -1378,13 +1378,14 @@ app.get("/api/lich-su-thanh-toan/:idlohang", verifyToken, async (req, res) => {
     }
 });
 
+// get chatbot link
 app.post("/api/ayd", async (req, res) => {
   try {
     const response = await fetch("https://www.askyourdatabase.com/api/chatbot/v2/session", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer 2ffe538666201f4034dba196e23b2633a42887a38c17ad9e80927024d21be665", // Thay bằng API key thật
+        "Authorization": "Bearer 9f6aebb25b648039a029c54d3212602ca1d491eb292648d77947404438346a7d", // Thay bằng API key thật
       },
       body: JSON.stringify({
         "chatbotid": "a37a06f45e54ed59b8796080338d321c",
@@ -1396,6 +1397,32 @@ app.post("/api/ayd", async (req, res) => {
     res.json({ url: data.url });
   } catch (err) {
     res.status(500).json({ error: "Chatbot API error" });
+  }
+});
+
+
+// get dashboard widget session
+app.post("/api/widget-session", async (req, res) => {
+  try {
+    const response = await fetch("https://www.askyourdatabase.com/api/widget/v2/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer 9f6aebb25b648039a029c54d3212602ca1d491eb292648d77947404438346a7d" // Thay $API_KEY bằng API key thật
+      },
+      body: JSON.stringify({
+        widgetId: "44f49a0f-0953-4f2c-859e-24ac36f38365",
+        name: "User Name", // Có thể lấy từ user đăng nhập nếu muốn
+        email: "user@example.com", // Có thể lấy từ user đăng nhập nếu muốn
+        properties: {
+        }
+      })
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Widget API error" });
   }
 });
 
