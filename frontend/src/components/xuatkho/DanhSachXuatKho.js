@@ -78,6 +78,7 @@ const DanhSachXuatKho = ({ idxuatkhoFromRoute, ngayxuatFromRoute }) => {
     }
   }, [ngayxuatFromRoute, hasSetDateFromRoute]);
 
+  // filter du lieu theo searchQuery va range date
   const filteredData = xuatKhoData.filter((item) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
@@ -96,6 +97,8 @@ const DanhSachXuatKho = ({ idxuatkhoFromRoute, ngayxuatFromRoute }) => {
     return matchesSearch && isWithinDateRange;
   });
 
+  // sap xep du lieu theo idxuatkho
+  // xem lai logic cho hieu di
   const sortedData = filteredData.sort((a, b) => {
     if (sortOrder === "asc") {
       return a.idxuatkho - b.idxuatkho;
@@ -104,11 +107,13 @@ const DanhSachXuatKho = ({ idxuatkhoFromRoute, ngayxuatFromRoute }) => {
     }
   });
 
+  // phan trang
   const paginatedData = sortedData.slice(
     currentPage * rowsPerPage,
     currentPage * rowsPerPage + rowsPerPage
   );
 
+  // xu ly khi click vao nut tai ve PDF
   const handleDownloadClick = (transaction) => {
     // Lọc tất cả các vật tư có cùng mã giao dịch
     const filteredTransactions = xuatKhoData.filter(

@@ -16,22 +16,22 @@ import {
   TableBody,
   TablePagination,
 } from "@mui/material";
-import { formatDateToDDMMYYYY } from "../utils/utils"; // Import formatDateToDDMMYYYY function
+import { formatDateToDDMMYYYY } from "../utils/utils"; 
 import ChucNangVatTu from "./danhmucvattu/ChucNangVatTu";
 
 const DanhMucVatTu = () => {
-  const [danhMucVatTu, setDanhMucVatTu] = useState([]); // Danh sách danh mục
-  const [vatTu, setVatTu] = useState([]); // Danh sách vật tư
-  const [loading, setLoading] = useState(true); // Trạng thái loading
-  const [error, setError] = useState(null); // Lỗi nếu có
-  const [selectedDanhMuc, setSelectedDanhMuc] = useState(null); // Danh mục được chọn
+  const [danhMucVatTu, setDanhMucVatTu] = useState([]); // ds danh muc vt
+  const [vatTu, setVatTu] = useState([]); // ds vat tu
+  const [loading, setLoading] = useState(true); // trang thai loading
+  const [error, setError] = useState(null);
+  const [selectedDanhMuc, setSelectedDanhMuc] = useState(null); // danh muc duoc chon
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
-  const [rowsPerPage, setRowsPerPage] = useState(10); // Số dòng hiển thị
-  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
-  const [suppliers, setSuppliers] = useState([]); //xem ncc
-  const [selectedVatTuId, setSelectedVatTuId] = useState(null); // ID vật tư được chọn
-  const [viewingSuppliers, setViewingSuppliers] = useState(false); // Trạng thái xem nhà cung cấp
+  const [rowsPerPage, setRowsPerPage] = useState(10); // so dong hien thi
+  const [currentPage, setCurrentPage] = useState(1); // trang hien tai
+  const [suppliers, setSuppliers] = useState([]); // xem ncc
+  const [selectedVatTuId, setSelectedVatTuId] = useState(null); // ID vat tu duoc chon
+  const [viewingSuppliers, setViewingSuppliers] = useState(false); // trang thai xem nha cung cap
   const [openDialog, setOpenDialog] = useState(false);
   const [editVatTu, setEditVatTu] = useState(null);
 
@@ -62,6 +62,7 @@ const DanhMucVatTu = () => {
     fetchDanhMucVatTu();
   }, []);
 
+  // lay vat tu theo id danh muc
   const fetchVatTu = async (idDanhMuc) => {
     const token = localStorage.getItem("token");
 
@@ -75,6 +76,7 @@ const DanhMucVatTu = () => {
         }
       );
 
+      // lay thong tin nha cung cap cho tung vat tu
       const vatTuWithSuppliers = await Promise.all(
         response.data.map(async (item) => {
           const supplierRes = await axios.get(
@@ -95,6 +97,7 @@ const DanhMucVatTu = () => {
     }
   };
 
+  // lay ncc theo id vat tu
   const fetchSuppliers = async (idVatTu) => {
     try {
       const token = localStorage.getItem("token");
@@ -114,6 +117,7 @@ const DanhMucVatTu = () => {
     }
   };
 
+  // loc va sap xep vat tu 
   const filteredAndSortedVatTu = vatTu
     .filter((item) =>
       item.tenvattu.toLowerCase().includes(searchQuery.toLowerCase())
@@ -151,6 +155,7 @@ const DanhMucVatTu = () => {
     if (selectedDanhMuc) fetchVatTu(selectedDanhMuc);
   };
 
+  // xoa vat tu
   const handleDeleteVatTu = async (idvattu) => {
   if (!window.confirm("Bạn có chắc chắn muốn xóa vật tư này?")) return;
   const token = localStorage.getItem("token");

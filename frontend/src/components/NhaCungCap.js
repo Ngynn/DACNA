@@ -35,6 +35,7 @@ const NhaCungCap = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [danhSachVatTu, setDanhSachVatTu] = useState([]);
 
+  // khai bao form data
   const [formData, setFormData] = useState({
     idncc: "",
     tenncc: "",
@@ -46,9 +47,10 @@ const NhaCungCap = () => {
     website: "",
     idvattu: [],
   });
-  const [isEditing, setIsEditing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false); // State cho Modal
+  const [isEditing, setIsEditing] = useState(false); // trang thai chinh sua
+  const [isModalOpen, setIsModalOpen] = useState(false); // trang thai mo modal, giong nhu cai dialog
 
+  // lay ds ncc
   const fetchNhaCungCap = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -89,16 +91,18 @@ const NhaCungCap = () => {
     fetchDanhSachVatTu();
   }, []);
 
+  // xu ly thay doi input
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // xu ly thay doi hoac them moi nha cung cap
   const handleAddOrUpdate = async () => {
     const token = localStorage.getItem("token");
     try {
       let response;
-      if (isEditing) {
+      if (isEditing) { // neu dang sua => put
         response = await axios.put(
           `http://localhost:5000/api/nhacungcap/${formData.idncc}`,
           formData,
@@ -108,7 +112,7 @@ const NhaCungCap = () => {
             },
           }
         );
-      } else {
+      } else { // neu them moi => post
         response = await axios.post(
           "http://localhost:5000/api/nhacungcap",
           formData,
@@ -162,30 +166,31 @@ const NhaCungCap = () => {
     }
   };
 
-   const handleEdit = async (ncc) => {
-     const token = localStorage.getItem("token");
-     try {
-       // Gọi đúng API để lấy danh sách vật tư của nhà cung cấp
-       const res = await axios.get(`http://localhost:5000/api/vattu/nhacungcap/${ncc.idncc}`, {
-         headers: { Authorization: `Bearer ${token}` },
-       });
-   
-       // Lấy danh sách idvattu từ dữ liệu trả về
-       const idvattuList = res.data.map(item => item.idvattu);
-   
-       // Cập nhật dữ liệu vào form
-       setFormData({ ...ncc, idvattu: idvattuList });
-   
-       // Mở modal chỉnh sửa
-       setIsEditing(true);
-       setIsModalOpen(true);
-   
-     } catch (err) {
-       console.error("Lỗi khi lấy vật tư của nhà cung cấp:", err);
-     }
-   };
- 
+  // xu ly khi nhan nut Sua
+  const handleEdit = async (ncc) => {
+    const token = localStorage.getItem("token");
+    try {
+      // Gọi đúng API để lấy danh sách vật tư của nhà cung cấp
+      const res = await axios.get(`http://localhost:5000/api/vattu/nhacungcap/${ncc.idncc}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
+      // Lấy danh sách idvattu từ dữ liệu trả về
+      const idvattuList = res.data.map(item => item.idvattu);
+
+      // Cập nhật dữ liệu vào form
+      setFormData({ ...ncc, idvattu: idvattuList });
+
+      // Mở modal chỉnh sửa
+      setIsEditing(true);
+      setIsModalOpen(true);
+
+    } catch (err) {
+      console.error("Lỗi khi lấy vật tư của nhà cung cấp:", err);
+    }
+  };
+
+  // xu ly khi nhan nut Xoa
   const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
     if (window.confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này?")) {
@@ -212,6 +217,7 @@ const NhaCungCap = () => {
     return <p>{error}</p>;
   }
 
+  // loc, sap xep nha cung cap theo ten, mst, sdt
   const filteredNhaCungCap = nhaCungCap.filter((ncc) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -221,6 +227,7 @@ const NhaCungCap = () => {
     );
   });
 
+  // sap xep theo ten
   const sortedNhaCungCap = filteredNhaCungCap.sort((a, b) => {
     if (sortOrder === "asc") {
       return a.tenncc.localeCompare(b.tenncc);
@@ -229,6 +236,7 @@ const NhaCungCap = () => {
     }
   });
 
+  // phan trang
   const startIndex = (currentPage - 1) * rowsPerPage;
   const paginatedNhaCungCap = sortedNhaCungCap.slice(
     startIndex,
@@ -263,7 +271,21 @@ const NhaCungCap = () => {
         <Button
           variant="contained"
           color="primary"
-          onClick={() => setIsModalOpen(true)} // Mở Modal thêm mới
+          onClick={() => {
+            setFormData({ //reset form data 
+              idncc: "",
+              tenncc: "",
+              sodienthoai: "",
+              email: "",
+              diachi: "",
+              stk: "",
+              mst: "",
+              website: "",
+              idvattu: [],
+            });
+            setIsEditing(false);
+            setIsModalOpen(true);
+          }}
           style={{ background: "#28a745" }}
         >
           <AddCircleOutlineIcon style={{ marginRight: "5px" }} />
@@ -335,7 +357,7 @@ const NhaCungCap = () => {
         onPageChange={(e, newPage) => setCurrentPage(newPage + 1)}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
-        labelRowsPerPage="Số dòng" // Đổi "Rows per page" thành "Số dòng"
+        labelRowsPerPage="Số dòng"
         labelDisplayedRows={({ from, to, count }) =>
           `${from}-${to} trên ${count !== -1 ? count : `nhiều hơn ${to}`}`
         }

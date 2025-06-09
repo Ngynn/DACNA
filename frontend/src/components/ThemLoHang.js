@@ -3,7 +3,7 @@ import axios from "axios";
 import { Box, Button, Typography, Input, Table, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
 import * as XLSX from "xlsx";
 
-// Hàm chuyển số serial Excel thành chuỗi ngày/tháng/năm
+// chuyển định dạng ngày excel thành định dạng ngày JS
 function excelDateToJSDate(serial) {
     if (!serial || isNaN(serial)) return serial;
     const date = XLSX.SSF.parse_date_code(serial);
@@ -18,9 +18,9 @@ const ThemLoHang = () => {
     const [file, setFile] = useState(null);
     const [message, setMessage] = useState("");
     const [excelData, setExcelData] = useState([]);
-    const [vatTuInfo, setVatTuInfo] = useState([]); // Thông tin vật tư trong file và tồn kho
+    const [vatTuInfo, setVatTuInfo] = useState([]);
 
-    // Lấy số lượng tồn kho hiện tại cho các idvattu trong file Excel
+    // lay info vat tu tu database va doc info trong file excel
     const fetchVatTuInfo = async (idvattuList, excelRows) => {
     if (!idvattuList.length) {
         setVatTuInfo([]);
@@ -28,7 +28,7 @@ const ThemLoHang = () => {
     }
     try {
         const token = localStorage.getItem("token");
-        // Lấy toàn bộ tồn kho
+        // lay ton kho tu db
         const res = await axios.get("http://localhost:5000/tonkho", {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -48,7 +48,7 @@ const ThemLoHang = () => {
         setVatTuInfo([]);
     }
 };
-
+    // Hàm xử lý khi người dùng chọn file
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         setFile(selectedFile);
@@ -65,7 +65,7 @@ const ThemLoHang = () => {
                 const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
                 setExcelData(json);
 
-                // Lấy danh sách idvattu duy nhất trong file
+               // Lấy danh sách id vật tư từ dữ liệu Excel
                 const idvattuList = Array.from(
                     new Set(json.map((row) => row.idvattu).filter((id) => id))
                 );
@@ -127,7 +127,7 @@ const ThemLoHang = () => {
                 </Typography>
             )}
 
-            {/* Hiển thị dữ liệu Excel nếu có */}
+            {/* hien thi du lieu excel */}
             {excelData.length > 0 && (
                 <Box sx={{ marginTop: "30px" }}>
                     <Typography variant="h6" gutterBottom>
@@ -176,7 +176,6 @@ const ThemLoHang = () => {
                         </TableHead>
                         <TableBody>
                             {vatTuInfo.map((row) => {
-                                // Chuyển về số nếu có thể, nếu không thì để trống
                                 const soLuongNhap = Number(row.soluong_excel) || 0;
                                 const tonKhoHienTai = Number(row.tonkhohientai) || 0;
                                 const soLuongSauKhiNhap = soLuongNhap + tonKhoHienTai;

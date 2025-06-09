@@ -60,6 +60,7 @@ const TonKho = () => {
     fetchTonKho();
   }, []);
 
+  // kiem tra ngay sap het han trước 14 ngày
   const getExpiringSoon = (ngayHetHan) => {
     if (!ngayHetHan) return false;
     const today = new Date();
@@ -69,6 +70,7 @@ const TonKho = () => {
     return diffDays <= 14 && diffDays >= 0;
   };
 
+  // kiem tra ngay da het han
   const getExpired = (ngayHetHan) => {
     if (!ngayHetHan) return false;
     const today = new Date();
@@ -135,6 +137,8 @@ const TonKho = () => {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const paginatedViewData = viewData.slice(startIndex, startIndex + rowsPerPage);
 
+  // xac dinh class cho tung row trong table
+  // CHU Y CAI HAM NAY, HAM NAY LA DE SAP XEP, LOC CAC VAT TU THEO TUNG TRANG THAI
   const getRowClass = (item) => {
     if (getExpired(item.ngayhethan)) return "da-het-han";
     if (Number(item.tonkhohientai) === 0) return "het-vat-tu";
@@ -144,11 +148,13 @@ const TonKho = () => {
     return "ton-kho-du";
   };
 
-  // Thêm hàm mở menu
+  // mo menu
   const handleMenuOpen = (event, idVatTu) => {
     setAnchorEl(event.currentTarget);
     setMenuVatTuId(idVatTu);
   };
+
+  // dong menu
   const handleMenuClose = () => {
     setAnchorEl(null);
     setMenuVatTuId(null);

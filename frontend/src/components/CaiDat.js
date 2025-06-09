@@ -104,7 +104,7 @@ const CaiDat = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleLogout}
-                sx={{ width: "200px" }} // Chiều rộng nút
+                sx={{ width: "200px" }} 
               >
                 Đăng xuất
               </Button>
@@ -116,7 +116,7 @@ const CaiDat = () => {
                   variant="outlined"
                   color="secondary"
                   onClick={handleBackup}
-                  sx={{ width: "200px" }} // Chiều rộng nút
+                  sx={{ width: "200px" }} 
                 >
                   Sao lưu dữ liệu
                 </Button>
@@ -130,8 +130,8 @@ const CaiDat = () => {
             </Typography>
             <form // Dùn form để chặn Cảnh báo "Password field is not contained in a form"
               onSubmit={(e) => {
-                e.preventDefault(); // Ngăn chặn hành vi mặc định của form
-                handleChangePassword(); // Gọi hàm đổi mật khẩu
+                e.preventDefault(); 
+                handleChangePassword(); 
               }}
             >
               <TextField
@@ -151,7 +151,7 @@ const CaiDat = () => {
                 sx={{ marginBottom: "10px" }}
               />
               <Button
-                type="submit" // Đặt type là "submit" để form xử lý sự kiện onSubmit
+                type="submit" 
                 variant="contained"
                 color="primary"
                 fullWidth

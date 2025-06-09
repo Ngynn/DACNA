@@ -40,8 +40,8 @@ const pool = new Pool({
   user: "postgres",
   host: "localhost",
   database: "QLNK",
-  password: "kyanh",
-      // password: "123123",
+  //password: "kyanh",
+       password: "123123",
   port: 5432,
 });
 
@@ -106,6 +106,42 @@ app.put("/api/nguoidung/:id", verifyToken, async (req, res) => {
   }
 });
 
+function getQuenMatKhauEmailHTML(newPassword) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Khôi phục mật khẩu</title>
+</head>
+<body style="font-family: 'Lato', Arial, Helvetica, sans-serif; background-color:#f1f1f1;">
+  <table width="100%" bgcolor="#f1f1f1" style="max-width:640px;margin:auto;">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <img src="https://img.freepik.com/free-vector/shield_78370-582.jpg" alt="Logo" width="100" height="100">
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#fff" style="padding:40px;">
+        <h2 style="color:#383e56;">Khôi phục mật khẩu</h2>
+        <p>Bạn vừa yêu cầu khôi phục mật khẩu cho tài khoản của mình.</p>
+        <p><b>Mật khẩu mới của bạn là:</b></p>
+        <div style="font-size: 20px; color: #1976d2; font-weight: bold; margin: 20px 0;">${newPassword}</div>
+        <p>Vui lòng đăng nhập và đổi lại mật khẩu để bảo mật tài khoản.</p>
+        <p>Trân trọng,<br>Đội ngũ hỗ trợ</p>
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#383e56" style="color:#fff;text-align:center;padding:20px;">
+        © 2025 KKTL Company, Inc.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
 app.post("/api/quenmatkhau", async (req, res) => {
   const { email } = req.body;
 
@@ -147,6 +183,7 @@ app.post("/api/quenmatkhau", async (req, res) => {
       to: email,
       subject: "Khôi phục mật khẩu",
       text: `Mật khẩu mới của bạn là: ${matkhauMoi}`,
+      html: getQuenMatKhauEmailHTML(matkhauMoi),
     };
 
     await transporter.sendMail(mailOptions);
@@ -797,7 +834,10 @@ app.get('/api/nhacungcap/vattu/:idvattu', verifyToken, async (req, res) => {
                 ncc.tenncc,
                 ncc.email,
                 ncc.sodienthoai,
-                ncc.diachi
+                ncc.diachi,
+                ncc.stk,
+                ncc.mst,
+                ncc.website
             FROM nhacungcap ncc
             JOIN vattu_nhacungcap vtncc ON ncc.idncc = vtncc.idncc
             WHERE vtncc.idvattu = $1
@@ -878,9 +918,9 @@ app.get('/api/vattu/nhacungcap/:idncc', verifyToken, async (req, res) => {
 
 //send email toi ncc
 app.post("/api/send-email", verifyToken, async (req, res) => {
-  const { email, subject, message } = req.body;
+  const { email, subject, message, html } = req.body;
 
-  if (!email || !subject || !message) {
+  if (!email || !subject || (!message && !html)) {
     return res.status(400).json({ message: "Thiếu thông tin email, tiêu đề hoặc nội dung." });
   }
 
@@ -888,7 +928,7 @@ app.post("/api/send-email", verifyToken, async (req, res) => {
     const transporter = nodemailer.createTransport({
       host: "smtp.mailersend.net",
       port: 587,
-      secure: false, // upgrade later with STARTTLS
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
@@ -899,7 +939,8 @@ app.post("/api/send-email", verifyToken, async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: subject,
-      text: message,
+      text: message || undefined,
+      html: html || undefined,
     };
 
     await transporter.sendMail(mailOptions);
@@ -1410,10 +1451,10 @@ app.post("/api/ayd", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer 9f6aebb25b648039a029c54d3212602ca1d491eb292648d77947404438346a7d", // Thay bằng API key thật
+        "Authorization": `Bearer ${process.env.API_KEY}`,
       },
       body: JSON.stringify({
-        "chatbotid": "a8f3abb5902386cebaafe8bcdfcd1aa4",
+        "chatbotid": process.env.CHATBOT_ID,
         "name": process.env.EMAIL_PASSWORD,
         "email": process.env.EMAIL_USER
       }),
@@ -1432,10 +1473,10 @@ app.post("/api/widget-session", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer 9f6aebb25b648039a029c54d3212602ca1d491eb292648d77947404438346a7d" // Thay $API_KEY bằng API key thật
+        "Authorization": `Bearer ${process.env.API_KEY}`,
       },
       body: JSON.stringify({
-        widgetId: "44f49a0f-0953-4f2c-859e-24ac36f38365",
+        widgetId: process.env.DASHBOARD_ID,
         name: "User Name", // Có thể lấy từ user đăng nhập nếu muốn
         email: "user@example.com", // Có thể lấy từ user đăng nhập nếu muốn
         properties: {

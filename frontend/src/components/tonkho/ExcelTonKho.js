@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Button } from "@mui/material";
 
+// xuat ten dua theo view
 const getFileName = (view) => {
   switch (view) {
     case "tonKhoDu": return "TonKho_OnDinh.xlsx";
@@ -14,6 +15,7 @@ const getFileName = (view) => {
   }
 };
 
+// đẩy dữ liệu vào excel
 const ExcelTonKho = ({ data, view }) => {
   const handleExport = () => {
     if (!data || data.length === 0) return;
