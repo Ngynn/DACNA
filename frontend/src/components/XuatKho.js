@@ -79,34 +79,30 @@ const XuatKho = () => {
       setError("Vui lòng thêm ít nhất một vật tư trước khi xuất kho.");
       return;
     }
-
     try {
       const token = localStorage.getItem("token");
       const data = {
         vatTuGroups: vatTuGroups.map((group) => ({
-          IDVatTu: parseInt(group.IDVatTu, 10), // Chuyển đổi sang số
+          IDVatTu: parseInt(group.IDVatTu, 10),
           TenVatTu: group.TenVatTu,
-          SoLuong: parseInt(group.SoLuong, 10), // Chuyển đổi sang số
+          SoLuong: parseInt(group.SoLuong, 10), 
         })),
         NguoiYeuCau,
         PhoneNguoiYeuCau,
-        IDNguoiDung: parseInt(IDNguoiDung, 10), // Chuyển đổi sang số
+        IDNguoiDung: parseInt(IDNguoiDung, 10), 
       };
 
-      console.log("Dữ liệu gửi đi:", JSON.stringify(data, null, 2)); // Log dữ liệu gửi đi
-
+      // api
       const response = await axios.post("http://localhost:5000/xuatkho", data, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log("Xuất kho: ", token);
 
       if (response.data.success) {
         setMessage(response.data.message);
         setPhieuXuatKho(response.data.data);
         setVatTuGroups([]); // Xóa danh sách vật tư sau khi xuất kho thành công
         setNguoiYeuCau("");
-        setPhoneNguoiYeuCau(""); // Reset số điện thoại
+        setPhoneNguoiYeuCau(""); // Reset sdt
         setIDNguoiDung("");
         setTenNguoiDung("");
       }

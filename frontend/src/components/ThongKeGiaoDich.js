@@ -8,7 +8,7 @@ const ThongKeGiaoDich = () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Nếu cần token xác thực, thêm Authorization ở đây
+        // ko can token
       }
     })
       .then((res) => res.json())

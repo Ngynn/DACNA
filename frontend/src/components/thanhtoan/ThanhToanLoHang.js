@@ -134,7 +134,7 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
           VNĐ
         </Typography>
         <Autocomplete
-          freeSolo
+          freeSolo // nhap tu do
           options={generatePriceSuggestions(
             summary ? summary.congno : loHang?.congno,
             soTienThanhToan
@@ -158,7 +158,7 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
             }
           }}
           onBlur={() => {
-            // Khi mất focus, format lại cho đẹp
+            // Khi mất focus, format lại cho đẹp // là sao?
             setDisplayValue(
               soTienThanhToan
                 ? Number(soTienThanhToan).toLocaleString("vi-VN")
@@ -194,16 +194,17 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
         >
           <Button
             onClick={() => {
-              setError(""); // Xóa lỗi khi nhấn Hủy
+              // reset form, dong dialog
+              setError(""); 
               setSoTienThanhToan("");
               setMoTa("");
-              setDisplayValue(""); // Reset luôn giá trị hiển thị số tiền  
+              setDisplayValue(""); 
               onClose();
             }}
           >
             Hủy
           </Button>
-          {/* Hiển thị thông báo lỗi bên trong form */}
+          {/* hien thi error */}
           {error && (
             <p
               style={{

@@ -13,11 +13,51 @@ import {
     Checkbox
 } from "@mui/material";
 
+// template co san
+function getBaoGiaEmailHTML(materialList) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Báo Giá Vật Tư</title>
+</head>
+<body style="font-family: 'Lato', Arial, Helvetica, sans-serif; background-color:#f1f1f1;">
+  <table width="100%" bgcolor="#f1f1f1" style="max-width:640px;margin:auto;">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <img src="https://static.vecteezy.com/system/resources/previews/029/223/957/non_2x/medical-health-circle-logo-element-free-vector.jpg" alt="Logo" width="100" height="100">
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#fff" style="padding:40px;">
+        <h2 style="color:#383e56;">Kính gửi Quý Nhà Cung Cấp,</h2>
+        <p>Chúng tôi muốn yêu cầu báo giá cho các vật tư sau:</p>
+        <ul>
+          ${materialList.map(m => `<li>${m.tenvattu}</li>`).join("")}
+        </ul>
+        <p>Trân trọng,<br>Công ty KKTL</p>
+        <div style="margin-top:40px;text-align:center;">
+          <a href="#" style="background-color: #01c8c8; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Gửi Phản Hồi</a>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#383e56" style="color:#fff;text-align:center;padding:20px;">
+        © 2025 KKTL Company, Inc.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
 const BaoGia = () => {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [selectedSuppliers, setSelectedSuppliers] = useState([]); // Thêm state này
+  const [selectedSuppliers, setSelectedSuppliers] = useState([]);
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -51,7 +91,7 @@ const BaoGia = () => {
             return res.data;
           })
         );
-        // Lấy hợp các nhà cung cấp (không trùng lặp)
+        // Kết hợp tất cả nhà cung cấp từ các vật tư đã chọn
         const allSuppliers = supplierLists.flat();
         const uniqueSuppliers = [];
         const seen = new Set();
@@ -61,8 +101,8 @@ const BaoGia = () => {
             seen.add(sup.idncc);
           }
         }
-        setSuppliers(uniqueSuppliers);
-        setSelectedSuppliers(uniqueSuppliers.map((s) => s.idncc)); // Mặc định chọn hết
+        setSuppliers(uniqueSuppliers); // cai nay la de chi hien thi cac ncc co loai vat tu da chon
+        setSelectedSuppliers(uniqueSuppliers.map((s) => s.idncc)); // day gia tri vao selectedSuppliers, xiu nua render se check het
       } catch (error) {
         console.error("Lỗi khi lấy danh sách nhà cung cấp:", error);
         setSuppliers([]);
@@ -90,19 +130,8 @@ const BaoGia = () => {
     const selectedMaterialDetails = materials.filter((m) =>
       selectedMaterials.includes(m.idvattu)
     );
-    const materialList = selectedMaterialDetails
-      .map((m) => `- ${m.tenvattu}`)
-      .join("\n");
 
-    const emailContent = `
-Kính gửi Quý Nhà Cung Cấp,
-
-Chúng tôi muốn yêu cầu báo giá cho các vật tư sau:
-${materialList}
-
-Trân trọng,
-Công ty KKTL
-        `;
+    const emailHtml = getBaoGiaEmailHTML(selectedMaterialDetails);
 
     try {
       const token = localStorage.getItem("token");
@@ -115,7 +144,7 @@ Công ty KKTL
               {
                 email: supplier.email,
                 subject: "Yêu cầu báo giá vật tư",
-                message: emailContent,
+                html: emailHtml,
               },
               {
                 headers: { Authorization: `Bearer ${token}` },
@@ -144,7 +173,7 @@ Công ty KKTL
           setSelectedMaterials(newValue.map((item) => item.idvattu));
         }}
         renderOption={(props, option, { selected }) => {
-          const { key, ...rest } = props; // Loại bỏ key khỏi props
+          const { key, ...rest } = props;
           return (
             <li key={option.idvattu} {...rest}>
               <Checkbox
@@ -187,7 +216,7 @@ Công ty KKTL
                 <TableRow key={supplier.idncc}>
                   <TableCell>
                     <Checkbox
-                      checked={selectedSuppliers.includes(supplier.idncc)}
+                      checked={selectedSuppliers.includes(supplier.idncc)} // checkbox se duoc check neu idncc co trong selectedSuppliers
                       onChange={() => handleSupplierCheck(supplier.idncc)}
                     />
                   </TableCell>

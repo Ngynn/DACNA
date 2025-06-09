@@ -23,7 +23,7 @@ const ThanhToan = () => {
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedLoHang, setSelectedLoHang] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(""); // State để lưu giá trị tìm kiếm
+  const [searchQuery, setSearchQuery] = useState(""); 
   //const navigate = useNavigate();
   const [rowsPerPage, setRowsPerPage] = useState(10); // Số dòng hiển thị mỗi trang
   const [currentPage, setCurrentPage] = useState(0); // Trang hiện tại
@@ -70,6 +70,7 @@ const ThanhToan = () => {
     setSelectedLoHang(null);
   };
 
+  // refresh data sau khi thanh toan thanh cong
   const reloadData = async () => {
     setLoading(true);
     try {
@@ -206,7 +207,7 @@ const ThanhToan = () => {
 
       {/* Dialog thanh toán */}
       <ThanhToanLoHang
-        open={openDialog}
+        open={openDialog} 
         onClose={handleCloseDialog}
         loHang={selectedLoHang}
         onSuccess={reloadData}

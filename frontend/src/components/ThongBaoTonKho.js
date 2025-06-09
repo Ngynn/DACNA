@@ -22,6 +22,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
     fetchTonKho();
   }, []);
 
+  // kiem tra ngay sap het han
    const getExpiringSoon = (ngayHetHan) => {
     if (!ngayHetHan) return false;
     const today = new Date();
@@ -31,6 +32,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
     return diffDays <= 14 && diffDays >= 0;
   };
 
+  // kiem tra ngay da het han
   const getExpired = (ngayHetHan) => {
     if (!ngayHetHan) return false;
     const today = new Date();

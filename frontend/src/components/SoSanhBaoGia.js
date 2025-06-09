@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 const SoSanhBaoGia = () => {
     const [companyData, setCompanyData] = useState([]);
 
+    // Xử lý upload file báo giá
     const handleFileUpload = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -24,6 +25,7 @@ const SoSanhBaoGia = () => {
         reader.readAsBinaryString(file);
     };
 
+    // Tính tổng tiền cho từng công ty
     const calculateTotalForCompany = (data) => {
         return data.reduce((total, row) => {
             const thanhTien = parseFloat(row["Thành Tiền (VNĐ)"]?.toString().replace(/,/g, "") || 0);
@@ -31,13 +33,15 @@ const SoSanhBaoGia = () => {
         }, 0);
     };
 
+    // Tìm công ty có tổng tiền thấp nhất và so sánh giá từng mặt hàng
     const getBestCompanyByTotal = (chartData) => {
         if (chartData.length === 0) return null;
         return chartData.reduce((best, company) => {
-            return company.total < best.total ? company : best;
+            return company.total < best.total ? company : best; 
         });
     };
 
+    // tim cong ty co gia thap nhat cho tung vat tu
     const getBestCompanyByItem = (companyData) => {
         const itemComparison = {};
         companyData.forEach((company) => {
@@ -55,6 +59,7 @@ const SoSanhBaoGia = () => {
         return itemComparison;
     };
 
+    // data cho chart, tinh tong tien cho tung cong ty
     const chartData = companyData.map((company) => ({
         name: company.companyName,
         total: calculateTotalForCompany(company.data),
@@ -63,13 +68,14 @@ const SoSanhBaoGia = () => {
     const bestCompanyByTotal = getBestCompanyByTotal(chartData);
     const bestCompanyByItem = getBestCompanyByItem(companyData);
 
-    // Tạo dữ liệu cho biểu đồ so sánh giá từng mặt hàng giữa các công ty
+    // lay danh sach tat ca mat hang tu tat ca cong ty
     const allItems = Array.from(
         new Set(companyData.flatMap(company =>
             company.data.map(item => item["Tên Vật Tư"])
         ))
     );
 
+    // tao data cho bieu do so sanh gia tung mat hang
     const itemCompareChartData = allItems.map(itemName => {
         const row = { itemName };
         companyData.forEach(company => {

@@ -72,6 +72,12 @@ const ChucNangVatTu = ({
     setLoading(false);
   };
 
+  // check coi form co hop le khong
+  const isFormValid =
+    form.tenvattu.trim() !== "" &&
+    form.iddanhmuc !== "" &&
+    form.donvi.trim() !== "";
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>{editData ? "Sửa vật tư" : "Thêm vật tư mới"}</DialogTitle>
@@ -167,7 +173,11 @@ const ChucNangVatTu = ({
               {error}
             </p>
           )}
-          <Button onClick={handleSubmit} variant="contained" disabled={loading}>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={loading || !isFormValid}
+          >
             {editData ? "Lưu" : "Thêm"}
           </Button>
         </Box>

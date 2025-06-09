@@ -32,6 +32,7 @@ const LoHang = () => {
         fetchLoHang();
     }, []);
 
+    // lay data lo hang
     const fetchLoHang = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -44,6 +45,7 @@ const LoHang = () => {
         }
     };
 
+    // lay chi tiet cua tung lo hang = id
     const fetchChiTietLoHang = async (idlohang) => {
         try {
             const token = localStorage.getItem("token");
@@ -66,6 +68,7 @@ const LoHang = () => {
         }
     };
 
+    // xu ly xôa lo hang
     const handleDeleteLoHang = async (idlohang) => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa lô hàng này?")) {
             return;
@@ -77,13 +80,14 @@ const LoHang = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             alert("Xóa lô hàng thành công.");
-            fetchLoHang(); // Cập nhật danh sách lô hàng sau khi xóa
+            fetchLoHang(); // refresh ds lo hang sau khi xoa 
         } catch (error) {
             console.error("Lỗi khi xóa lô hàng:", error);
             alert("Có lỗi xảy ra khi xóa lô hàng.");
         }
     };
 
+    // xu ly thay doi trang thai lo hang
     const handleChangeTrangThai = async (idlohang, newTrangThai) => {
         try {
             const token = localStorage.getItem("token");
@@ -95,7 +99,7 @@ const LoHang = () => {
                 }
             );
             alert(res.data.message);
-            fetchLoHang(); // Cập nhật danh sách lô hàng sau khi thay đổi trạng thái
+            fetchLoHang(); // refresh ds lo hang sau khi update
         } catch (error) {
             console.error("Lỗi khi cập nhật trạng thái lô hàng:", error);
             alert("Có lỗi xảy ra khi cập nhật trạng thái lô hàng.");
@@ -107,6 +111,7 @@ const LoHang = () => {
         setChiTietLoHang([]);
     };
 
+    // dinh dang ngay gio 
     const formatDateTime = (isoString) => {
         if (!isoString) return "N/A"; // Nếu không có giá trị, trả về "N/A"
         const date = new Date(isoString);

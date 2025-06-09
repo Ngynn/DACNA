@@ -33,9 +33,9 @@ const XuatKhoPdf = ({ phieuXuatKho }) => {
         style={{
           padding: "20px",
           marginBottom: "20px",
-          backgroundColor: "#fff", // Đảm bảo nền trắng
-          fontSize: "20px", // Tăng kích thước chữ
-          lineHeight: "1.25", // Tăng khoảng cách dòng để dễ đọc hơn
+          backgroundColor: "#fff", 
+          fontSize: "20px", 
+          lineHeight: "1.25", 
         }}
       >
         {/* Tựa đề */}
