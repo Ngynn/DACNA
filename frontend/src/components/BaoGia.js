@@ -10,7 +10,8 @@ import {
     TableBody,
     TextField,
     Autocomplete,
-    Checkbox
+    Checkbox,
+    CircularProgress
 } from "@mui/material";
 
 // template co san
@@ -58,7 +59,8 @@ const BaoGia = () => {
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState([]);
-
+  const [loading, setLoading] = useState(false); // Thêm state loading để quản lý trạng thái tải dữ liệu
+  
   useEffect(() => {
     const fetchMaterials = async () => {
       try {
@@ -122,42 +124,54 @@ const BaoGia = () => {
   };
 
   // Hàm gửi email yêu cầu báo giá
-  const handleSendEmail = async () => {
-    if (selectedMaterials.length === 0 || selectedSuppliers.length === 0) {
-      alert("Vui lòng chọn vật tư và chọn ít nhất một nhà cung cấp.");
-      return;
-    }
-    const selectedMaterialDetails = materials.filter((m) =>
-      selectedMaterials.includes(m.idvattu)
+ const handleSendEmail = async () => {
+  if (selectedMaterials.length === 0 || selectedSuppliers.length === 0) {
+    alert("Vui lòng chọn vật tư và chọn ít nhất một nhà cung cấp.");
+    return;
+  }
+  setLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+    await Promise.all(
+      suppliers
+        .filter((supplier) => selectedSuppliers.includes(supplier.idncc))
+        .map(async (supplier) => {
+          // Lấy vật tư mà nhà cung cấp này cung cấp (giao giữa selectedMaterials và vật tư của supplier)
+          const res = await axios.get(
+            `http://localhost:5000/api/vattu/nhacungcap/${supplier.idncc}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const supplierMaterialIds = res.data.map((m) => m.idvattu);
+          // Lọc ra vật tư đã chọn mà nhà cung cấp này có
+          const materialForSupplier = materials.filter(
+            (m) =>
+              selectedMaterials.includes(m.idvattu) &&
+              supplierMaterialIds.includes(m.idvattu)
+          );
+          if (materialForSupplier.length === 0) return null; // Không gửi nếu không có vật tư phù hợp
+
+          const emailHtml = getBaoGiaEmailHTML(materialForSupplier);
+
+          return axios.post(
+            "http://localhost:5000/api/send-email",
+            {
+              email: supplier.email,
+              subject: "Yêu cầu báo giá vật tư",
+              html: emailHtml,
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+        })
     );
-
-    const emailHtml = getBaoGiaEmailHTML(selectedMaterialDetails);
-
-    try {
-      const token = localStorage.getItem("token");
-      await Promise.all(
-        suppliers
-          .filter((supplier) => selectedSuppliers.includes(supplier.idncc))
-          .map((supplier) =>
-            axios.post(
-              "http://localhost:5000/api/send-email",
-              {
-                email: supplier.email,
-                subject: "Yêu cầu báo giá vật tư",
-                html: emailHtml,
-              },
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            )
-          )
-      );
-      alert("Email đã được gửi đến các nhà cung cấp đã chọn.");
-    } catch (error) {
-      console.error("Lỗi khi gửi email:", error);
-      alert("Không thể gửi email.");
-    }
-  };
+    alert("Email đã được gửi đến các nhà cung cấp đã chọn.");
+  } catch (error) {
+    console.error("Lỗi khi gửi email:", error);
+    alert("Không thể gửi email.");
+  }
+  setLoading(false);
+};
 
   return (
     <Box sx={{ padding: "20px" }}>
@@ -237,11 +251,16 @@ const BaoGia = () => {
           variant="contained"
           color="primary"
           disabled={
-            selectedMaterials.length === 0 || selectedSuppliers.length === 0
+            loading ||
+            selectedMaterials.length === 0 ||
+            selectedSuppliers.length === 0
           }
           onClick={handleSendEmail}
+          startIcon={
+            loading ? <CircularProgress size={20} color="inherit" /> : null
+          }
         >
-          Gửi Yêu Cầu Báo Giá
+          {loading ? "Đang gửi..." : "Gửi Yêu Cầu Báo Giá"}
         </Button>
       </Box>
     </Box>

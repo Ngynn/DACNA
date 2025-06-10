@@ -22,7 +22,7 @@ const ThongKeGiaoDich = () => {
       src={iframeUrl}
       style={{
         width: "100%",
-        height: "600px",
+        height: "100%",
         border: "none",
       }}
       title="Widget Chatbot"

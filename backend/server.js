@@ -40,8 +40,8 @@ const pool = new Pool({
   user: "postgres",
   host: "localhost",
   database: "QLNK",
-  //password: "kyanh",
-       password: "123123",
+  password: "kyanh",
+      //  password: "123123",
   port: 5432,
 });
 
@@ -800,22 +800,27 @@ app.get("/api/xuatkho", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        XK.IDXuatKho,
-        XK.NgayXuat,
-        CTXK.IDVatTu,
-        VT.TenVatTu,
-        CTXK.SoLuong,
-        CTXK.NguoiYeuCau,
-        CTXK.PhoneNguoiYeuCau,
-        CTXK.IDNguoiDung,
-        ND.TenDangNhap AS TenNguoiDung,
-        CTLH.DonGiaNhap AS DonGia
-      FROM XuatKho XK
-      JOIN ChiTietXuatKho CTXK ON XK.IDXuatKho = CTXK.IDXuatKho
-      JOIN VatTu VT ON CTXK.IDVatTu = VT.IDVatTu
-      JOIN NguoiDung ND ON CTXK.IDNguoiDung = ND.IDNguoiDung
-      LEFT JOIN ChiTietLoHang CTLH ON CTXK.IDVatTu = CTLH.IDVatTu -- Kết nối với ChiTietLoHang
-      ORDER BY XK.NgayXuat DESC
+  XK.IDXuatKho,
+  XK.NgayXuat,
+  CTXK.IDVatTu,
+  VT.TenVatTu,
+  CTXK.SoLuong,
+  CTXK.NguoiYeuCau,
+  CTXK.PhoneNguoiYeuCau,
+  CTXK.IDNguoiDung,
+  ND.TenDangNhap AS TenNguoiDung,
+  (
+    SELECT CTLH.DonGiaNhap
+    FROM ChiTietLoHang CTLH
+    WHERE CTLH.IDVatTu = CTXK.IDVatTu
+    ORDER BY CTLH.IDLoHang DESC
+    LIMIT 1
+  ) AS DonGia
+FROM XuatKho XK
+JOIN ChiTietXuatKho CTXK ON XK.IDXuatKho = CTXK.IDXuatKho
+JOIN VatTu VT ON CTXK.IDVatTu = VT.IDVatTu
+JOIN NguoiDung ND ON CTXK.IDNguoiDung = ND.IDNguoiDung
+ORDER BY XK.NgayXuat DESC
     `);
     res.status(200).json(result.rows);
   } catch (err) {
