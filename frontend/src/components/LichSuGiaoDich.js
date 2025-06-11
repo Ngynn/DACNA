@@ -157,12 +157,12 @@ const LichSuGiaoDich = () => {
           <TableHead>
             <TableRow>
               <TableCell>Mã Giao Dịch</TableCell>
+              <TableCell>Ngày Giao Dịch</TableCell>
+              <TableCell>Loại Giao Dịch</TableCell>
+              <TableCell>Người Thực Hiện</TableCell>
               <TableCell>Mã Vật Tư</TableCell>
               <TableCell>Tên Vật Tư</TableCell>
-              <TableCell>Loại Giao Dịch</TableCell>
               <TableCell>Số Lượng</TableCell>
-              <TableCell>Người Dùng</TableCell>
-              <TableCell>Ngày Giao Dịch</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -170,18 +170,18 @@ const LichSuGiaoDich = () => {
               giaoDich.inventories.map((inventory, index) => (
                 <TableRow key={`${giaoDich.idgiaodich}-${index}`}>
                   <TableCell>{giaoDich.idgiaodich}</TableCell>
+                  <TableCell>
+                    {formatDateToDDMMYYYY(giaoDich.ngaygiaodich)}
+                  </TableCell>
+                  <TableCell>{giaoDich.loaigiaodich}</TableCell>
+                  <TableCell>
+                    {giaoDich.tennguoidung || "Không xác định"}
+                  </TableCell>
                   <TableCell>{inventory.idvattu}</TableCell>
                   <TableCell>
                     {inventory.tenvattu || "Không xác định"}
                   </TableCell>
-                  <TableCell>{giaoDich.loaigiaodich}</TableCell>
                   <TableCell>{inventory.soluong}</TableCell>
-                  <TableCell>
-                    {giaoDich.tennguoidung || "Không xác định"}
-                  </TableCell>
-                  <TableCell>
-                    {formatDateToDDMMYYYY(giaoDich.ngaygiaodich)}
-                  </TableCell>
                 </TableRow>
               ))
             )}
