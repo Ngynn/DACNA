@@ -24,6 +24,7 @@ type PhieuKiemKe = {
   trangthai: "dang_kiem" | "hoan_thanh";
   tongsoluongvattu: number;
   soluongdakiem: number;
+  phantramhoanthanh?: number;
 };
 
 export default function Checked() {
@@ -356,10 +357,12 @@ export default function Checked() {
 
   // Cập nhật renderPhieuItem để hiển thị nút xóa cho tất cả phiếu
   const renderPhieuItem = ({ item }: { item: PhieuKiemKe }) => {
+    // Sử dụng phantramhoanthanh từ backend hoặc tính lại
     const progressPercent =
-      item.tongsoluongvattu > 0
+      item.phantramhoanthanh ||
+      (item.tongsoluongvattu > 0
         ? Math.round((item.soluongdakiem / item.tongsoluongvattu) * 100)
-        : 0;
+        : 0);
 
     const phieuDate = new Date(item.ngaykiem).toISOString().split("T")[0];
     const todayDate = new Date().toISOString().split("T")[0];

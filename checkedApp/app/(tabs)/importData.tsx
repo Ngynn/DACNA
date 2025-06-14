@@ -467,9 +467,7 @@ export default function ImportData() {
               <Text style={styles.summaryNumber}>
                 {importData
                   .reduce((total, item) => {
-                    const gia = parseInt(item.dongianhap) || 0;
-                    const soluong = parseInt(item.soluong) || 0;
-                    return total + gia * soluong;
+                    return total + (item.tongtien || 0);
                   }, 0)
                   .toLocaleString("vi-VN")}{" "}
                 VNĐ

@@ -34,6 +34,7 @@ type ProductDetail = {
   cachluutru: string;
   tongnhap: number;
   tongxuat: number;
+  tonghaohut: number;
   tonkhohientai: number;
   tonkhothucte: number;
 };
@@ -207,7 +208,8 @@ export default function ProductDetailScreen() {
   const getStockStatus = () => {
     if (!product) return { text: "", color: "" };
 
-    const tonkho = Number(product.tonkhohientai);
+    // ✅ Sử dụng tồn kho thực tế (đã trừ hao hụt)
+    const tonkho = Number(product.tonkhothucte);
 
     if (tonkho === 0) {
       return { text: "Hết hàng", color: "#e74c3c" };
@@ -639,6 +641,7 @@ export default function ProductDetailScreen() {
                   </View>
                 )}
 
+                {/* Stats Grid */}
                 <View style={styles.statGrid}>
                   <View
                     style={[
@@ -655,6 +658,16 @@ export default function ProductDetailScreen() {
                     <Text style={styles.statLabel}>Tồn kho hiện tại</Text>
                   </View>
 
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: "#9b59b6" }]}>
+                      {product.tonkhothucte}
+                      <Text style={styles.statUnit}> {product.donvi}</Text>
+                    </Text>
+                    <Text style={styles.statLabel}>Tồn kho thực tế</Text>
+                  </View>
+                </View>
+
+                <View style={styles.statGrid}>
                   <View style={styles.statItem}>
                     <Text style={styles.statValue}>
                       {product.tongnhap}
@@ -679,6 +692,19 @@ export default function ProductDetailScreen() {
                       />
                     </Text>
                     <Text style={styles.statLabel}>Tổng xuất</Text>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: "#f39c12" }]}>
+                      {product.tonghaohut}
+                      <Ionicons
+                        name="trending-down"
+                        size={14}
+                        color="#f39c12"
+                        style={styles.statIcon}
+                      />
+                    </Text>
+                    <Text style={styles.statLabel}>Tổng hao hụt</Text>
                   </View>
                 </View>
               </View>
@@ -795,6 +821,39 @@ export default function ProductDetailScreen() {
                   <Text style={styles.actionButtonText}>Xóa sản phẩm</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Thêm section thông tin kiểm kê nếu có hao hụt */}
+              {product.tonghaohut > 0 && (
+                <View style={styles.auditSection}>
+                  <View style={styles.auditHeader}>
+                    <Ionicons name="search" size={20} color="#f39c12" />
+                    <Text style={styles.auditTitle}>Thông tin kiểm kê</Text>
+                  </View>
+
+                  <View style={styles.auditContent}>
+                    <View style={styles.auditRow}>
+                      <Text style={styles.auditLabel}>Tổng hao hụt:</Text>
+                      <Text style={[styles.auditValue, { color: "#f39c12" }]}>
+                        {product.tonghaohut} {product.donvi}
+                      </Text>
+                    </View>
+
+                    <View style={styles.auditRow}>
+                      <Text style={styles.auditLabel}>Tồn kho thực tế:</Text>
+                      <Text style={styles.auditValue}>
+                        {product.tonkhothucte} {product.donvi}
+                      </Text>
+                    </View>
+
+                    <View style={styles.auditCalculation}>
+                      <Text style={styles.calculationText}>
+                        {product.tonkhohientai} (tồn kho) - {product.tonghaohut}{" "}
+                        (hao hụt) = {product.tonkhothucte} (thực tế)
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
             </>
           )}
 
@@ -1373,6 +1432,61 @@ const additionalStyles = StyleSheet.create({
     fontSize: 13,
     color: "#34495e",
     fontWeight: "500",
+  },
+  auditSection: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginTop: 16,
+    marginHorizontal: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  auditHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  auditTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#34495e",
+    marginLeft: 8,
+  },
+  auditContent: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  auditRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  auditLabel: {
+    fontSize: 15,
+    color: "#7f8c8d",
+    width: 120,
+  },
+  auditValue: {
+    fontSize: 15,
+    color: "#34495e",
+    fontWeight: "500",
+  },
+  auditCalculation: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ecf0f1",
+  },
+  calculationText: {
+    fontSize: 14,
+    color: "#34495e",
+    textAlign: "center",
   },
 });
 
