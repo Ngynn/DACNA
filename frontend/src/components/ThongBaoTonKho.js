@@ -45,7 +45,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
     if (tonKhoData.length === 0) return null;
 
     const soLuongIt = tonKhoData.filter(
-      (item) => Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) < 30
+      (item) => Number(item.tonkhothucte) > 0 && Number(item.tonkhothucte) < 30
     );
 
     const sapHetHan = tonKhoData.filter((item) =>
@@ -55,7 +55,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
     const daHetHan = tonKhoData.filter((item) => getExpired(item.ngayhethan));
 
     const hetVatTu = tonKhoData.filter(
-      (item) => Number(item.tonkhohientai) === 0
+      (item) => Number(item.tonkhothucte) === 0
     );
 
     return {

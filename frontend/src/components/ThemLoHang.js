@@ -29,7 +29,7 @@ const ThemLoHang = () => {
         try {
             const token = localStorage.getItem("token");
             // lay ton kho tu db
-            const res = await axios.get("http://localhost:3000/tonkho", {
+            const res = await axios.get("http://localhost:5000/tonkho", {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Lọc các vật tư có trong file Excel
@@ -40,7 +40,7 @@ const ThemLoHang = () => {
                     idvattu,
                     tenvattu: dbRow?.tenvattu || "",
                     soluong_excel: excelRow?.soluongthucte ?? excelRow?.soluong ?? "",
-                    tonkhohientai: dbRow?.tonkhohientai ?? "",
+                    tonkhothucte: dbRow?.tonkhothucte ?? "",
                 };
             });
             setVatTuInfo(info);
@@ -170,21 +170,21 @@ const ThemLoHang = () => {
                                 <TableCell>ID Vật Tư</TableCell>
                                 <TableCell>Tên Vật Tư</TableCell>
                                 <TableCell>Số lượng dự kiến sẽ nhập</TableCell>
-                                <TableCell>Số lượng tồn kho hiện tại</TableCell>
+                                <TableCell>Số lượng tồn kho thực tế</TableCell>
                                 <TableCell>Số lượng sau khi nhập</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {vatTuInfo.map((row) => {
                                 const soLuongNhap = Number(row.soluong_excel) || 0;
-                                const tonKhoHienTai = Number(row.tonkhohientai) || 0;
-                                const soLuongSauKhiNhap = soLuongNhap + tonKhoHienTai;
+                                const tonKhoThucTe = Number(row.tonkhothucte) || 0;
+                                const soLuongSauKhiNhap = soLuongNhap + tonKhoThucTe;
                                 return (
                                     <TableRow key={row.idvattu}>
                                         <TableCell>{row.idvattu}</TableCell>
                                         <TableCell>{row.tenvattu}</TableCell>
                                         <TableCell sx={{ background: "#fff3cd" }}>{row.soluong_excel}</TableCell>
-                                        <TableCell sx={{ background: "#d1ecf1" }}>{row.tonkhohientai}</TableCell>
+                                        <TableCell sx={{ background: "#d1ecf1" }}>{row.tonkhothucte}</TableCell>
                                         <TableCell sx={{ background: "#d4edda" }}>{soLuongSauKhiNhap}</TableCell>
                                     </TableRow>
                                 );

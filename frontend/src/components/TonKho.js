@@ -114,19 +114,19 @@ const TonKho = () => {
     }
     if (view === "soLuongIt") {
       return sortedTonKhoData.filter(
-        (item) => Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) < 30
+        (item) => Number(item.tonkhothucte) > 0 && Number(item.tonkhothucte) < 30
       );
     }
     if (view === "tonKhoDu") {
       return sortedTonKhoData.filter(
         (item) =>
-          Number(item.tonkhohientai) >= 30 &&
+          Number(item.tonkhothucte) >= 30 &&
           !getExpired(item.ngayhethan) &&
           !getExpiringSoon(item.ngayhethan)
       );
     }
     if (view === "hetVatTu") {
-      return sortedTonKhoData.filter((item) => Number(item.tonkhohientai) === 0);
+      return sortedTonKhoData.filter((item) => Number(item.tonkhothucte) === 0);
     }
     return sortedTonKhoData;
   };
@@ -141,9 +141,9 @@ const TonKho = () => {
   // CHU Y CAI HAM NAY, HAM NAY LA DE SAP XEP, LOC CAC VAT TU THEO TUNG TRANG THAI
   const getRowClass = (item) => {
     if (getExpired(item.ngayhethan)) return "da-het-han";
-    if (Number(item.tonkhohientai) === 0) return "het-vat-tu";
+    if (Number(item.tonkhothucte) === 0) return "het-vat-tu";
     if (getExpiringSoon(item.ngayhethan)) return "sap-het-han";
-    if (Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) < 30)
+    if (Number(item.tonkhothucte) > 0 && Number(item.tonkhothucte) < 30)
       return "ton-kho-it";
     return "ton-kho-du";
   };

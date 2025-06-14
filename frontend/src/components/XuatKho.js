@@ -129,7 +129,7 @@ const XuatKho = () => {
       }
 
       // Kiểm tra nếu số lượng xuất lớn hơn tồn kho
-      if (parseInt(currentVatTu.SoLuong, 10) > currentVatTu.TonKhoHienTai) {
+      if (parseInt(currentVatTu.SoLuong, 10) > currentVatTu.TonKhoThucTe) {
         setError("Số lượng xuất không được lớn hơn số lượng tồn kho!");
         return;
       }
@@ -141,7 +141,7 @@ const XuatKho = () => {
         TenVatTu: "",
         SoLuong: "",
         DonGia: "",
-        TonKhoHienTai: 0,
+        TonKhoThucTe: 0,
         NgayHetHan: "",
       });
       setError(""); // Xóa lỗi nếu thêm thành công
@@ -167,7 +167,7 @@ const XuatKho = () => {
       TenVatTu: "",
       SoLuong: "",
       DonGia: "",
-      TonKhoHienTai: 0,
+      TonKhoThucTe: 0,
       NgayHetHan: "",
     }); // Reset thông tin vật tư hiện tại
     setNguoiYeuCau(""); // Reset người yêu cầu
@@ -258,7 +258,7 @@ const XuatKho = () => {
                   <Autocomplete
                     options={vatTuList.filter(
                       (vt) =>
-                        vt.tonkhohientai > 0 &&
+                        vt.tonkhothucte > 0 &&
                         new Date(vt.ngayhethan) > new Date() // Lọc vật tư còn tồn kho và chưa hết hạn
                     )}
                     getOptionLabel={(option) => option.idvattu.toString()}
@@ -274,7 +274,7 @@ const XuatKho = () => {
                           IDVatTu: newValue ? newValue.idvattu : "",
                           TenVatTu: newValue ? newValue.tenvattu : "", // Xóa Tên nếu ID bị xóa
                           DonGia: newValue ? newValue.dongia : "",
-                          TonKhoHienTai: newValue ? newValue.tonkhohientai : 0,
+                          TonKhoThucTe: newValue ? newValue.tonkhothucte : 0,
                           NgayHetHan: newValue ? newValue.ngayhethan : "",
                         });
                       }
@@ -290,7 +290,7 @@ const XuatKho = () => {
                   <Autocomplete
                     options={vatTuList.filter(
                       (vt) =>
-                        vt.tonkhohientai > 0 &&
+                        vt.tonkhothucte > 0 &&
                         new Date(vt.ngayhethan) > new Date() // Lọc vật tư còn tồn kho và chưa hết hạn
                     )}
                     getOptionLabel={(option) => option.tenvattu}
@@ -306,7 +306,7 @@ const XuatKho = () => {
                           IDVatTu: newValue ? newValue.idvattu : "", // Xóa ID nếu Tên bị xóa
                           TenVatTu: newValue ? newValue.tenvattu : "",
                           DonGia: newValue ? newValue.dongia : "",
-                          TonKhoHienTai: newValue ? newValue.tonkhohientai : 0,
+                          TonKhoThucTe: newValue ? newValue.tonkhothucte : 0,
                           NgayHetHan: newValue ? newValue.ngayhethan : "",
                         });
                       }
@@ -353,12 +353,12 @@ const XuatKho = () => {
                 >
                   <p
                     style={{
-                      color: currentVatTu.TonKhoHienTai ? "green" : "grey",
+                      color: currentVatTu.TonKhoThucTe ? "green" : "grey",
                       margin: 0,
                     }}
                   >
-                    {currentVatTu.TonKhoHienTai
-                      ? `Còn lại: ${currentVatTu.TonKhoHienTai}`
+                    {currentVatTu.TonKhoThucTe
+                      ? `Còn lại: ${currentVatTu.TonKhoThucTe}`
                       : "Còn lại: không xác định"}
                   </p>
                   <Button
