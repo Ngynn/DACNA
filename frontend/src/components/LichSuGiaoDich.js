@@ -16,6 +16,7 @@ import {
   TablePagination,
 } from "@mui/material";
 import { formatDateToDDMMYYYY } from "../utils/utils"; // Import hàm định dạng ngày
+import { useLocation } from "react-router-dom";
 
 const LichSuGiaoDich = () => {
   const [lichSuGiaoDich, setLichSuGiaoDich] = useState([]);
@@ -28,6 +29,8 @@ const LichSuGiaoDich = () => {
   const [startDate, setStartDate] = useState(today); // Ngày bắt đầu mặc định là hôm nay
   const [endDate, setEndDate] = useState(today); // Ngày kết thúc mặc định là hôm nay
   const [sortOrder, setSortOrder] = useState("asc"); // Thứ tự sắp xếp: asc hoặc desc
+  const location = useLocation();
+  const highlightedId = location.state?.idgiaodich;
 
   useEffect(() => {
     const fetchLichSuGiaoDich = async () => {
@@ -53,6 +56,21 @@ const LichSuGiaoDich = () => {
 
     fetchLichSuGiaoDich();
   }, []);
+
+  useEffect(() => {
+    // Khi đã có dữ liệu và có id cần highlight
+    if (highlightedId && lichSuGiaoDich.length > 0) {
+      const found = lichSuGiaoDich.find(
+        (gd) => gd.idgiaodich === highlightedId
+      );
+      if (found) {
+        const ngay = new Date(found.ngaygiaodich);
+        setStartDate(ngay);
+        setEndDate(ngay);
+      }
+    }
+    // eslint-disable-next-line
+  }, [highlightedId, lichSuGiaoDich]);
 
   if (loading) {
     return <p>Đang tải dữ liệu...</p>;
@@ -168,7 +186,14 @@ const LichSuGiaoDich = () => {
           <TableBody>
             {paginatedLichSuGiaoDich.map((giaoDich) =>
               giaoDich.inventories.map((inventory, index) => (
-                <TableRow key={`${giaoDich.idgiaodich}-${index}`}>
+                <TableRow
+                  key={`${giaoDich.idgiaodich}-${index}`}
+                  sx={
+                    giaoDich.idgiaodich === highlightedId
+                      ? { backgroundColor: "#ffe082" }
+                      : {}
+                  }
+                >
                   <TableCell>{giaoDich.idgiaodich}</TableCell>
                   <TableCell>
                     {formatDateToDDMMYYYY(giaoDich.ngaygiaodich)}

@@ -148,13 +148,13 @@ const ChiTietAppbar = () => {
         state: {
           idxuatkho: giaoDich.idxuatkho,
           ngayxuat: giaoDich.ngayxuat
-        ? giaoDich.ngayxuat.slice(0, 10)
-        : giaoDich.ngaygiaodich?.slice(0, 10),
-    },
+            ? giaoDich.ngayxuat.slice(0, 10)
+            : giaoDich.ngaygiaodich?.slice(0, 10),
+        },
       });
     } else if (giaoDich.idnhapkho) {
-      navigate("/dashboard/nhapkho", {
-        state: { idnhapkho: giaoDich.idnhapkho },
+      navigate("/dashboard/lichsugiaodich", {
+        state: { idgiaodich: giaoDich.idgiaodich },
       });
     } else {
       alert("Không tìm thấy thông tin giao dịch!");
