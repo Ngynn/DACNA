@@ -54,7 +54,7 @@ const NhaCungCap = () => {
   const fetchNhaCungCap = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/nhacungcap", {
+      const response = await axios.get("http://localhost:3000/api/nhacungcap", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -76,7 +76,7 @@ const NhaCungCap = () => {
   const fetchDanhSachVatTu = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/vattu", {
+      const response = await axios.get("http://localhost:3000/api/vattu", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -104,7 +104,7 @@ const NhaCungCap = () => {
       let response;
       if (isEditing) { // neu dang sua => put
         response = await axios.put(
-          `http://localhost:5000/api/nhacungcap/${formData.idncc}`,
+          `http://localhost:3000/api/nhacungcap/${formData.idncc}`,
           formData,
           {
             headers: {
@@ -114,7 +114,7 @@ const NhaCungCap = () => {
         );
       } else { // neu them moi => post
         response = await axios.post(
-          "http://localhost:5000/api/nhacungcap",
+          "http://localhost:3000/api/nhacungcap",
           formData,
           {
             headers: {
@@ -128,7 +128,7 @@ const NhaCungCap = () => {
 
       // Gọi API gán vật tư (chỉ sau khi cập nhật thành công)
       await axios.post(
-        `http://localhost:5000/api/nhacungcap/${idncc}/vattu`, //gọi riêng để cập nhật vattu_nhacungcap
+        `http://localhost:3000/api/nhacungcap/${idncc}/vattu`, //gọi riêng để cập nhật vattu_nhacungcap
         { idvattuList: formData.idvattu },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -171,7 +171,7 @@ const NhaCungCap = () => {
     const token = localStorage.getItem("token");
     try {
       // Gọi đúng API để lấy danh sách vật tư của nhà cung cấp
-      const res = await axios.get(`http://localhost:5000/api/vattu/nhacungcap/${ncc.idncc}`, {
+      const res = await axios.get(`http://localhost:3000/api/vattu/nhacungcap/${ncc.idncc}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -195,7 +195,7 @@ const NhaCungCap = () => {
     const token = localStorage.getItem("token");
     if (window.confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/nhacungcap/${id}`, {
+        await axios.delete(`http://localhost:3000/api/nhacungcap/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

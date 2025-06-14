@@ -29,7 +29,7 @@ const LichSuKiemKe = ({ open, onClose, idVatTu }) => {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `http://localhost:5000/api/kiemke/${idVatTu}/lichsu`,
+          `http://localhost:3000/api/kiemke/${idVatTu}/lichsu`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -16,7 +16,7 @@ import {
   TableBody,
   TablePagination,
 } from "@mui/material";
-import { formatDateToDDMMYYYY } from "../utils/utils"; 
+import { formatDateToDDMMYYYY } from "../utils/utils";
 import ChucNangVatTu from "./danhmucvattu/ChucNangVatTu";
 
 const DanhMucVatTu = () => {
@@ -44,7 +44,7 @@ const DanhMucVatTu = () => {
     const fetchDanhMucVatTu = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/danhmuc", {
+        const response = await axios.get("http://localhost:3000/danhmuc", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -68,7 +68,7 @@ const DanhMucVatTu = () => {
 
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/vattu?idDanhMuc=${idDanhMuc}`,
+        `http://localhost:3000/api/vattu?idDanhMuc=${idDanhMuc}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -80,7 +80,7 @@ const DanhMucVatTu = () => {
       const vatTuWithSuppliers = await Promise.all(
         response.data.map(async (item) => {
           const supplierRes = await axios.get(
-            `http://localhost:5000/api/nhacungcap/vattu/${item.idvattu}`,
+            `http://localhost:3000/api/nhacungcap/vattu/${item.idvattu}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }
@@ -102,7 +102,7 @@ const DanhMucVatTu = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:5000/api/nhacungcap/vattu/${idVatTu}`,
+        `http://localhost:3000/api/nhacungcap/vattu/${idVatTu}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -157,17 +157,17 @@ const DanhMucVatTu = () => {
 
   // xoa vat tu
   const handleDeleteVatTu = async (idvattu) => {
-  if (!window.confirm("Bạn có chắc chắn muốn xóa vật tư này?")) return;
-  const token = localStorage.getItem("token");
-  try {
-    await axios.delete(`http://localhost:5000/api/vattu/${idvattu}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    reloadVatTu();
-  } catch (err) {
-    alert(err.response?.data?.message || "Không thể xóa vật tư này!");
-  }
-};
+    if (!window.confirm("Bạn có chắc chắn muốn xóa vật tư này?")) return;
+    const token = localStorage.getItem("token");
+    try {
+      await axios.delete(`http://localhost:3000/api/vattu/${idvattu}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      reloadVatTu();
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể xóa vật tư này!");
+    }
+  };
 
   if (loading) {
     return <p>Đang tải dữ liệu...</p>;

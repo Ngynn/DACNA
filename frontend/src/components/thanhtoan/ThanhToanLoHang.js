@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
-const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
+const ThanhToanLoHang = ({ open, onClose, loHang, onSuccess }) => {
   const [soTienThanhToan, setSoTienThanhToan] = useState("");
   const [moTa, setMoTa] = useState("");
   const [summary, setSummary] = useState(null);
@@ -26,7 +26,7 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
         try {
           const token = localStorage.getItem("token");
           const res = await axios.get(
-            `http://localhost:5000/api/lich-su-thanh-toan/${loHang.idlohang}`,
+            `http://localhost:3000/api/lich-su-thanh-toan/${loHang.idlohang}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setSummary(res.data.summary || null);
@@ -46,7 +46,7 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5000/api/thanh-toan",
+        "http://localhost:3000/api/thanh-toan",
         {
           idlohang: loHang.idlohang,
           sotienthanhtoan: parseInt(soTienThanhToan),
@@ -147,8 +147,8 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
               setDisplayValue(
                 newInputValue
                   ? Number(newInputValue.replace(/[^\d]/g, "")).toLocaleString(
-                      "vi-VN"
-                    )
+                    "vi-VN"
+                  )
                   : ""
               );
               setSoTienThanhToan(newInputValue.replace(/[^\d]/g, ""));
@@ -195,10 +195,10 @@ const ThanhToanLoHang = ({open, onClose, loHang, onSuccess}) => {
           <Button
             onClick={() => {
               // reset form, dong dialog
-              setError(""); 
+              setError("");
               setSoTienThanhToan("");
               setMoTa("");
-              setDisplayValue(""); 
+              setDisplayValue("");
               onClose();
             }}
           >

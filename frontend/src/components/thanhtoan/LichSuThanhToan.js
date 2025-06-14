@@ -25,7 +25,7 @@ const LichSuThanhToan = ({ open, onClose, idLoHang }) => {
         try {
           const token = localStorage.getItem("token");
           const res = await axios.get(
-            `http://localhost:5000/api/lich-su-thanh-toan/${idLoHang}`,
+            `http://localhost:3000/api/lich-su-thanh-toan/${idLoHang}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setHistoryData(res.data.history || []);

@@ -7,7 +7,7 @@ const ChatBot = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/ayd", {
+    fetch("http://localhost:3000/api/ayd", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

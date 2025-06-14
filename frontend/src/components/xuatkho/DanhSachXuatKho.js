@@ -49,7 +49,7 @@ const DanhSachXuatKho = ({ idxuatkhoFromRoute, ngayxuatFromRoute }) => {
     const fetchXuatKhoData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/api/xuatkho", {
+        const response = await axios.get("http://localhost:3000/api/xuatkho", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setXuatKhoData(response.data);

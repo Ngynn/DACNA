@@ -8,7 +8,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
     const fetchTonKho = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/tonkho", {
+        const response = await axios.get("http://localhost:3000/tonkho", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -23,7 +23,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
   }, []);
 
   // kiem tra ngay sap het han
-   const getExpiringSoon = (ngayHetHan) => {
+  const getExpiringSoon = (ngayHetHan) => {
     if (!ngayHetHan) return false;
     const today = new Date();
     const expiryDate = new Date(ngayHetHan);
@@ -73,7 +73,7 @@ const ThongBaoTonKho = ({ onWarningsUpdate }) => {
     }
   }, [canhBao, onWarningsUpdate]);
 
- 
+
 
   return null; // Không hiển thị gì
 };

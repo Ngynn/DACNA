@@ -28,7 +28,7 @@ const ChiTietAppbar = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/lichsugiaodich", {
+        const res = await axios.get("http://localhost:3000/lichsugiaodich", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -148,9 +148,9 @@ const ChiTietAppbar = () => {
         state: {
           idxuatkho: giaoDich.idxuatkho,
           ngayxuat: giaoDich.ngayxuat
-        ? giaoDich.ngayxuat.slice(0, 10)
-        : giaoDich.ngaygiaodich?.slice(0, 10),
-    },
+            ? giaoDich.ngayxuat.slice(0, 10)
+            : giaoDich.ngaygiaodich?.slice(0, 10),
+        },
       });
     } else if (giaoDich.idnhapkho) {
       navigate("/dashboard/nhapkho", {

@@ -4,7 +4,7 @@ const ThongKeGiaoDich = () => {
   const [iframeUrl, setIframeUrl] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/widget-session", {
+    fetch("http://localhost:3000/api/widget-session", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

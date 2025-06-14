@@ -36,7 +36,7 @@ const LoHang = () => {
     const fetchLoHang = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get("http://localhost:5000/api/lohang", {
+            const res = await axios.get("http://localhost:3000/api/lohang", {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setLoHangList(res.data);
@@ -50,7 +50,7 @@ const LoHang = () => {
         try {
             const token = localStorage.getItem("token");
             const res = await axios.get(
-                `http://localhost:5000/api/lohang/${idlohang}/chitiet`,
+                `http://localhost:3000/api/lohang/${idlohang}/chitiet`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
@@ -76,7 +76,7 @@ const LoHang = () => {
 
         try {
             const token = localStorage.getItem("token");
-            await axios.delete(`http://localhost:5000/api/lohang/${idlohang}`, {
+            await axios.delete(`http://localhost:3000/api/lohang/${idlohang}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             alert("Xóa lô hàng thành công.");
@@ -92,7 +92,7 @@ const LoHang = () => {
         try {
             const token = localStorage.getItem("token");
             const res = await axios.put(
-                `http://localhost:5000/api/lohang/${idlohang}/trangthai`,
+                `http://localhost:3000/api/lohang/${idlohang}/trangthai`,
                 { trangthai: newTrangThai },
                 {
                     headers: { Authorization: `Bearer ${token}` },
