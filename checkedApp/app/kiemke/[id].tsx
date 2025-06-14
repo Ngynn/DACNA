@@ -22,7 +22,8 @@ type TonKhoItem = {
   idvattu: number;
   tenvattu: string;
   tonkhohientai: number;
-  tonkhothucte?: number;
+  tonkhothucte: number;
+  tonghaohut?: number;
   ngayhethan?: string;
   soluonghaohut?: number;
   noidung?: string;
@@ -71,10 +72,12 @@ export default function KiemKeDetail() {
           id: `${item.idvattu}-${index}`,
           idvattu: item.idvattu,
           tenvattu: item.tenvattu || "Không có tên",
-          tonkhohientai: item.tonkhohientai || 0,
-          tonkhothucte: item.tonkhohientai || 0, // Tạm thời sử dụng giá trị này
+          // ✅ Chuyển đổi sang number một cách rõ ràng
+          tonkhohientai: Number(item.tonkhohientai) || 0,
+          tonkhothucte: Number(item.tonkhothucte) || 0,
+          tonghaohut: Number(item.tonghaohut) || 0,
           ngayhethan: item.ngayhethan,
-          soluonghaohut: item.soluonghaohut || 0,
+          soluonghaohut: Number(item.soluonghaohut) || 0,
           noidung: item.noidung || "",
           checked: item.checked || false,
         })
@@ -187,7 +190,9 @@ export default function KiemKeDetail() {
     if (!selectedItem) return;
 
     const soluonghaohut = parseInt(formData.soluonghaohut) || 0;
-    const tonkho = selectedItem.tonkhothucte || selectedItem.tonkhohientai || 0;
+    // const tonkho = selectedItem.tonkhothucte || selectedItem.tonkhohientai || 0;
+
+    const tonkho = selectedItem.tonkhohientai || 0;
 
     if (soluonghaohut < 0 || soluonghaohut > tonkho) {
       Alert.alert("Lỗi", `Số lượng hao hụt phải từ 0 đến ${tonkho}`);
@@ -205,9 +210,9 @@ export default function KiemKeDetail() {
   };
 
   const renderItem = ({ item }: { item: TonKhoItem }) => {
-    const tonkhoSauKiemKe =
-      (item.tonkhothucte || item.tonkhohientai || 0) -
-      (item.soluonghaohut || 0);
+    // ✅ KHÔNG trừ thêm soluonghaohut vì tonkhothucte đã được tính sẵn
+    // tonkhothucte = tonkhohientai - tonghaohut (đã bao gồm soluonghaohut)
+    const tonkhoSauKiemKe = item.tonkhothucte;
 
     return (
       <View style={styles.itemContainer}>
@@ -240,17 +245,35 @@ export default function KiemKeDetail() {
           </View>
         </View>
 
-        {/* Thông tin tồn kho */}
+        {/* ✅ Thông tin tồn kho chi tiết */}
         <View style={styles.stockInfo}>
           <View style={styles.stockRow}>
-            <Text style={styles.stockLabel}>Tồn kho ban đầu:</Text>
+            <Text style={styles.stockLabel}>Tồn kho hiện tại:</Text>
             <Text style={styles.stockValue}>{item.tonkhohientai}</Text>
+          </View>
+
+          {/* ✅ Hiển thị tổng hao hụt từ tất cả các lần kiểm kê */}
+          {(item.tonghaohut || 0) > 0 && (
+            <View style={styles.stockRow}>
+              <Text style={styles.stockLabel}>Tổng hao hụt (lịch sử):</Text>
+              <Text style={[styles.stockValue, { color: "#e74c3c" }]}>
+                {item.tonghaohut}
+              </Text>
+            </View>
+          )}
+
+          {/* ✅ Hiển thị tồn kho thực tế (đã trừ tổng hao hụt) */}
+          <View style={styles.stockRow}>
+            <Text style={styles.stockLabel}>Tồn kho thực tế:</Text>
+            <Text style={[styles.stockValue, { color: "#8e44ad" }]}>
+              {item.tonkhothucte}
+            </Text>
           </View>
 
           {item.checked && (
             <>
               <View style={styles.stockRow}>
-                <Text style={styles.stockLabel}>Hao hụt:</Text>
+                <Text style={styles.stockLabel}>Hao hụt lần này:</Text>
                 <Text
                   style={[
                     styles.stockValue,
@@ -263,8 +286,11 @@ export default function KiemKeDetail() {
                 </Text>
               </View>
 
+              {/* ✅ Sửa logic hiển thị kết quả */}
               <View style={[styles.stockRow, styles.resultRow]}>
-                <Text style={styles.resultLabel}>Tồn kho sau kiểm kê:</Text>
+                <Text style={styles.resultLabel}>
+                  Tồn kho hiện tại (đã kiểm):
+                </Text>
                 <Text style={styles.resultValue}>{tonkhoSauKiemKe}</Text>
               </View>
             </>
@@ -311,6 +337,59 @@ export default function KiemKeDetail() {
             {item.checked ? "Chỉnh sửa" : "Kiểm kê"}
           </Text>
         </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderSummaryStats = () => {
+    const totalItems = tonkhoData.length;
+    const checkedItems = tonkhoData.filter((item) => item.checked).length;
+
+    // ✅ Đảm bảo cộng số, không phải string
+    const totalHaoHutLanNay = tonkhoData.reduce(
+      (sum, item) => sum + (Number(item.soluonghaohut) || 0),
+      0
+    );
+    const totalHaoHutLichSu = tonkhoData.reduce(
+      (sum, item) => sum + (Number(item.tonghaohut) || 0),
+      0
+    );
+    const totalTonKhoHienTai = tonkhoData.reduce(
+      (sum, item) => sum + (Number(item.tonkhohientai) || 0),
+      0
+    );
+    const totalTonKhoThucTe = tonkhoData.reduce(
+      (sum, item) => sum + (Number(item.tonkhothucte) || 0),
+      0
+    );
+
+    return (
+      <View style={styles.summaryContainer}>
+        <Text style={styles.summaryTitle}>📊 Tổng quan kiểm kê</Text>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Tiến độ</Text>
+            <Text style={styles.summaryValue}>
+              {checkedItems}/{totalItems}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Tồn kho hiện tại</Text>
+            <Text style={styles.summaryValue}>{totalTonKhoHienTai}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Tồn kho thực tế</Text>
+            <Text style={[styles.summaryValue, { color: "#8e44ad" }]}>
+              {totalTonKhoThucTe}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Hao hụt lần này</Text>
+            <Text style={[styles.summaryValue, { color: "#e74c3c" }]}>
+              {totalHaoHutLanNay}
+            </Text>
+          </View>
+        </View>
       </View>
     );
   };
@@ -400,6 +479,9 @@ export default function KiemKeDetail() {
         )}
       </View>
 
+      {/* Summary Stats */}
+      {tonkhoData.length > 0 && renderSummaryStats()}
+
       {/* List */}
       <FlatList
         data={filteredData}
@@ -442,9 +524,20 @@ export default function KiemKeDetail() {
           <ScrollView style={styles.modalContent}>
             <View style={styles.infoSection}>
               <Text style={styles.infoTitle}>Thông tin vật tư</Text>
+              <Text style={styles.infoText}>ID: {selectedItem?.idvattu}</Text>
               <Text style={styles.infoText}>
-                ID: {selectedItem?.idvattu} | Tồn kho:{" "}
-                {selectedItem?.tonkhothucte || selectedItem?.tonkhohientai}
+                Tồn kho hiện tại: {selectedItem?.tonkhohientai}
+              </Text>
+
+              {/* ✅ Hiển thị rõ ràng các loại hao hụt */}
+              {(selectedItem?.tonghaohut || 0) > 0 && (
+                <Text style={[styles.infoText, { color: "#e74c3c" }]}>
+                  Tổng hao hụt (lịch sử): {selectedItem?.tonghaohut}
+                </Text>
+              )}
+
+              <Text style={styles.infoText}>
+                Tồn kho thực tế: {selectedItem?.tonkhothucte}
               </Text>
             </View>
 
@@ -809,5 +902,42 @@ const styles = StyleSheet.create({
   multilineInput: {
     height: 80,
     textAlignVertical: "top",
+  },
+  summaryContainer: {
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    marginBottom: 12,
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  summaryItem: {
+    width: "48%",
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: "#7f8c8d",
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2c3e50",
   },
 });

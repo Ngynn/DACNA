@@ -34,7 +34,6 @@ app.use(bodyParser.json());
 // Public folder để người dùng có thể tải file
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-
 // PostgreSQL Pool
 const pool = new Pool({
   user: "postgres",
@@ -398,7 +397,6 @@ app.get("/api/vattu", verifyToken, async (req, res) => {
   }
 });
 
-
 app.post("/xuatkho", verifyToken, async (req, res) => {
   const { vatTuGroups, NguoiYeuCau, PhoneNguoiYeuCau, IDNguoiDung } = req.body;
 
@@ -494,7 +492,6 @@ app.post("/xuatkho", verifyToken, async (req, res) => {
     client.release();
   }
 });
-
 
 app.get("/lichsugiaodich", verifyToken, async (req, res) => {
   try {
@@ -593,7 +590,6 @@ app.get("/api/kiemke/:idvattu/lichsu", verifyToken, async (req, res) => {
   }
 });
 
-
 app.get("/api/nhacungcap", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -649,7 +645,6 @@ app.get("/api/thongke-nhapxuat", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Lỗi máy chủ" });
   }
 });
-
 
 app.post("/api/nhacungcap", verifyToken, async (req, res) => {
   const { tenncc, sodienthoai, email, diachi, stk, mst, website } = req.body;
@@ -728,7 +723,6 @@ app.post("/api/nhacungcap", verifyToken, async (req, res) => {
     });
   }
 });
-
 
 app.delete("/api/nhacungcap/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
@@ -1345,7 +1339,6 @@ app.get("/api/tonkho/:idvattu/nhap", verifyToken, async (req, res) => {
   }
 });
 
-
 // xem danh sách thanh toán của các lô hàng
 app.get("/api/thanh-toan", verifyToken, async (req, res) => {
   try {
@@ -1611,67 +1604,67 @@ app.get('/tonkho/:id', verifyToken, async (req, res) => {
   if (!id || isNaN(Number(id))) {
     return res.status(400).json({ message: 'ID vật tư không hợp lệ' });
   }
+
   try {
+
     // Kiểm tra vật tư có tồn tại không
     const checkVatTu = await pool.query('SELECT idvattu FROM vattu WHERE idvattu = $1', [id]);
+
     if (checkVatTu.rows.length === 0) {
       return res.status(404).json({ message: `Không tìm thấy vật tư với ID: ${id}` });
     }
-    // Query đã điều chỉnh theo cấu trúc bảng thực tế
+
     const result = await pool.query(`
-            SELECT 
-                vt.idvattu,
-                vt.tenvattu,
-                vt.iddanhmuc,
-                dm.tendanhmuc,
-                vt.donvi,
-                vt.mota,
-                vt.ngayhethan,
-                vt.cachluutru,
-                COALESCE(SUM(ctnk.soluong), 0) AS tongnhap,
-                COALESCE(SUM(ctxk.soluong), 0) AS tongxuat,
-                COALESCE(SUM(ctnk.soluong), 0) - COALESCE(SUM(ctxk.soluong), 0) AS tonkhohientai
-            FROM 
-                vattu vt
-            LEFT JOIN 
-                danhmucvattu dm ON vt.iddanhmuc = dm.iddanhmuc
-            LEFT JOIN 
-                chitietnhapkho ctnk ON vt.idvattu = ctnk.idvattu
-            LEFT JOIN 
-                chitietxuatkho ctxk ON vt.idvattu = ctxk.idvattu
-            WHERE
-                vt.idvattu = $1
-            GROUP BY 
-                vt.idvattu, vt.tenvattu, vt.iddanhmuc, dm.tendanhmuc, vt.donvi, vt.mota, vt.ngayhethan, vt.cachluutru
-        `, [id]);
+      SELECT 
+        vt.idvattu,
+        vt.tenvattu,
+        vt.iddanhmuc,
+        vt.donvi,
+        vt.mota,
+        vt.ngayhethan,
+        vt.cachluutru,
+        tk.tendanhmuc,
+        tk.tongnhap,
+        tk.tongxuat,
+        tk.tonghaohut,
+        tk.tonkhohientai,
+        tk.tonkhothucte
+      FROM vattu vt
+      LEFT JOIN tonkho tk ON vt.idvattu = tk.idvattu
+      WHERE vt.idvattu = $1
+    `, [id]);
+
     if (result.rows.length === 0) {
-      // Nếu vật tư tồn tại nhưng không có thông tin tồn kho, trả về thông tin cơ bản của vật tư
+
+      // Nếu vật tư tồn tại nhưng không có trong view tonkho, trả về thông tin cơ bản
       const vattuInfo = await pool.query(`
-                SELECT 
-                    vt.idvattu,
-                    vt.tenvattu,
-                    vt.iddanhmuc,
-                    dm.tendanhmuc,
-                    vt.donvi,
-                    vt.mota,
-                    vt.ngayhethan,
-                    vt.cachluutru,
-                    0 AS tongnhap,
-                    0 AS tongxuat,
-                    0 AS tonkhohientai
-                FROM 
-                    vattu vt
-                LEFT JOIN 
-                    danhmucvattu dm ON vt.iddanhmuc = dm.iddanhmuc
-                WHERE
-                    vt.idvattu = $1
-            `, [id]);
+        SELECT 
+          vt.idvattu,
+          vt.tenvattu,
+          vt.iddanhmuc,
+          vt.donvi,
+          vt.mota,
+          vt.ngayhethan,
+          vt.cachluutru,
+          dm.tendanhmuc,
+          0 AS tongnhap,
+          0 AS tongxuat,
+          0 AS tonghaohut,
+          0 AS tonkhohientai,
+          0 AS tonkhothucte
+        FROM vattu vt
+        LEFT JOIN danhmucvattu dm ON vt.iddanhmuc = dm.iddanhmuc
+        WHERE vt.idvattu = $1
+      `, [id]);
+
       res.status(200).json(vattuInfo.rows[0]);
       return;
     }
 
+    console.log('Dữ liệu chi tiết sản phẩm:', result.rows[0]);
     res.status(200).json(result.rows[0]);
   } catch (error) {
+    console.error('Lỗi khi lấy chi tiết vật tư:', error);
     res.status(500).json({ message: 'Lỗi server khi lấy chi tiết vật tư' });
   }
 });
@@ -1714,27 +1707,34 @@ app.post("/api/kiemke", verifyToken, async (req, res) => {
   }
 });
 
-// Cập nhật phiếu kiểm kê
+// UPSERT (UPDATE/INSERT) Chỉnh sửa phiếu kiểm kê
 app.post("/api/lichsukiemke", verifyToken, async (req, res) => {
+  // Lấy dữ liệu từ request body
   const { idkiemke, idvattu, soluonghaohut, noidung } = req.body;
 
+  //  VALIDATION 1: Kiểm tra các trường bắt buộc
   if (!idkiemke || !idvattu || soluonghaohut === undefined || soluonghaohut === null) {
     return res.status(400).json({
       message: "ID kiểm kê, ID vật tư và số lượng hao hụt là bắt buộc."
     });
   }
 
-  const soluonghaohutInt = parseInt(soluonghaohut);
-  if (isNaN(soluonghaohutInt) || soluonghaohutInt < 0) {
+  //  VALIDATION 2: Chuyển đổi và kiểm tra số lượng hao hụt
+  const soluonghaohutInt = parseInt(soluonghaohut); // Chuyển string thành integer
+  if (isNaN(soluonghaohutInt) || soluonghaohutInt < 0) { // Kiểm tra là số và không âm
     return res.status(400).json({
       message: "Số lượng hao hụt phải là số nguyên không âm."
     });
   }
 
+  // Tạo connection riêng cho transaction
   const client = await pool.connect();
 
   try {
+    // BẮT ĐẦU TRANSACTION - đảm bảo tính nhất quán dữ liệu
     await client.query("BEGIN");
+
+    // KIỂM TRA CONSTRAINT: Xem có unique constraint không
     const constraintCheck = await client.query(`
             SELECT constraint_name 
             FROM information_schema.table_constraints 
@@ -1743,17 +1743,17 @@ app.post("/api/lichsukiemke", verifyToken, async (req, res) => {
             AND constraint_name = 'unique_kiemke_vattu'
         `);
 
-    // Kiểm tra phiếu kiểm kê tồn tại
+    // VALIDATION 3: Kiểm tra phiếu kiểm kê có tồn tại không
     const kiemkeResult = await client.query(
       "SELECT * FROM kiemke WHERE idkiemke = $1",
       [idkiemke]
     );
 
     if (kiemkeResult.rows.length === 0) {
-      throw new Error("Phiếu kiểm kê không tồn tại.");
+      throw new Error("Phiếu kiểm kê không tồn tại."); // Ném lỗi sẽ trigger catch
     }
 
-    // Kiểm tra vật tư tồn tại
+    //  VALIDATION 4: Kiểm tra vật tư có tồn tại không
     const vattuResult = await client.query(
       "SELECT * FROM vattu WHERE idvattu = $1",
       [idvattu]
@@ -1763,7 +1763,7 @@ app.post("/api/lichsukiemke", verifyToken, async (req, res) => {
       throw new Error("Vật tư không tồn tại.");
     }
 
-    // Kiểm tra tồn kho hiện tại
+    //  VALIDATION 5: Lấy tồn kho hiện tại của vật tư
     const tonkhoResult = await client.query(
       "SELECT tonkhohientai FROM tonkho WHERE idvattu = $1",
       [idvattu]
@@ -1773,103 +1773,123 @@ app.post("/api/lichsukiemke", verifyToken, async (req, res) => {
       throw new Error("Không tìm thấy thông tin tồn kho cho vật tư này.");
     }
 
+    // Lấy số lượng tồn kho hiện tại
     const tonkhohientai = tonkhoResult.rows[0].tonkhohientai;
 
-    // Validation số lượng hao hụt
+    // VALIDATION 6: Kiểm tra số lượng hao hụt không vượt tồn kho
     if (soluonghaohutInt > tonkhohientai) {
       throw new Error(`Số lượng hao hụt (${soluonghaohutInt}) không thể lớn hơn tồn kho hiện tại (${tonkhohientai}).`);
     }
 
+    // KIỂM TRA: Record đã tồn tại chưa (để debug)
     const existingRecord = await client.query(
       "SELECT * FROM lichsukiemke WHERE idkiemke = $1 AND idvattu = $2",
       [idkiemke, idvattu]
     );
 
+    // BIẾN THEO DÕI kết quả và loại operation
     let result;
     let operationType = 'UNKNOWN';
 
     try {
-      // Thử cập nhật trước
+      //  BƯỚC 1: THỬ UPDATE TRƯỚC (an toàn nhất)
       const updateResult = await client.query(
         `UPDATE lichsukiemke 
-                 SET soluonghaohut = $3, noidung = $4, ngaycapnhat = CURRENT_TIMESTAMP
-                 WHERE idkiemke = $1 AND idvattu = $2
-                 RETURNING *`,
-        [idkiemke, idvattu, soluonghaohutInt, noidung || '']
+         SET soluonghaohut = $3, noidung = $4, ngaycapnhat = CURRENT_TIMESTAMP
+         WHERE idkiemke = $1 AND idvattu = $2
+         RETURNING *`, // RETURNING * để lấy record sau khi update
+        [idkiemke, idvattu, soluonghaohutInt, noidung || ''] // noidung || '' để tránh null
       );
+
+      //  NẾU UPDATE THÀNH CÔNG (có record để update)
       if (updateResult.rowCount > 0) {
         result = updateResult;
         operationType = 'UPDATE';
       } else {
+        //  BƯỚC 2: KHÔNG CÓ GÌ ĐỂ UPDATE, THỬ INSERT
         try {
           result = await client.query(
             `INSERT INTO lichsukiemke (idkiemke, idvattu, soluonghaohut, noidung) 
-                         VALUES ($1, $2, $3, $4) 
-                         RETURNING *`,
+             VALUES ($1, $2, $3, $4) 
+             RETURNING *`, // RETURNING * để lấy record sau khi insert
             [idkiemke, idvattu, soluonghaohutInt, noidung || '']
           );
           operationType = 'INSERT';
 
         } catch (insertError) {
+          //  BƯỚC 3: NẾU INSERT BỊ CONFLICT (race condition)
           if (insertError.code === '23505' && insertError.constraint === 'unique_kiemke_vattu') {
+            // Có thể có request khác đã insert cùng lúc, thử update lại
             const retryUpdateResult = await client.query(
               `UPDATE lichsukiemke 
-                             SET soluonghaohut = $3, noidung = $4, ngaycapnhat = CURRENT_TIMESTAMP
-                             WHERE idkiemke = $1 AND idvattu = $2
-                             RETURNING *`,
+               SET soluonghaohut = $3, noidung = $4, ngaycapnhat = CURRENT_TIMESTAMP
+               WHERE idkiemke = $1 AND idvattu = $2
+               RETURNING *`,
               [idkiemke, idvattu, soluonghaohutInt, noidung || '']
             );
+
             if (retryUpdateResult.rowCount > 0) {
               result = retryUpdateResult;
-              operationType = 'UPDATE_RETRY';
+              operationType = 'UPDATE_RETRY'; // Đánh dấu là retry update
             } else {
               throw new Error("Unable to UPDATE or INSERT record after multiple attempts");
             }
           } else {
+            // Lỗi khác không phải conflict, ném lại
             throw insertError;
           }
         }
       }
     } catch (mainError) {
+      // Ném lại lỗi để catch bên ngoài xử lý
       throw mainError;
     }
 
+    // LẤY RECORD ĐÃ LƯU
     const savedRecord = result.rows[0];
 
+    // KIỂM TRA DUPLICATE (để đảm bảo chỉ có 1 record)
     const duplicateCheck = await client.query(
       "SELECT COUNT(*) as count FROM lichsukiemke WHERE idkiemke = $1 AND idvattu = $2",
       [idkiemke, idvattu]
     );
 
+    // TÍNH TOÁN tồn kho thực tế sau khi trừ hao hụt
     const tonkhothucte = tonkhohientai - soluonghaohutInt;
 
+    // COMMIT TRANSACTION - Lưu tất cả thay đổi
     await client.query("COMMIT");
 
+    //  TRẢ VỀ KẾT QUẢ THÀNH CÔNG
     res.status(201).json({
       success: true,
       message: "Lưu lịch sử kiểm kê thành công.",
       data: {
-        ...savedRecord,
-        tonkhohientai: tonkhohientai,
-        tonkhothucte: tonkhothucte,
-        debug: {
-          wasExisting: existingRecord.rows.length > 0,
-          constraintExists: constraintCheck.rows.length > 0,
-          duplicateCount: parseInt(duplicateCheck.rows[0].count)
+        ...savedRecord, // Spread toàn bộ dữ liệu record đã lưu
+        tonkhohientai: tonkhohientai, // Thêm thông tin tồn kho hiện tại
+        tonkhothucte: tonkhothucte, // Thêm tồn kho thực tế (sau trừ hao hụt)
+        debug: { // Thông tin debug để troubleshoot
+          wasExisting: existingRecord.rows.length > 0, // Record đã tồn tại trước đó?
+          constraintExists: constraintCheck.rows.length > 0, // Constraint có tồn tại?
+          duplicateCount: parseInt(duplicateCheck.rows[0].count) // Số lượng duplicate hiện tại
         }
       }
     });
   } catch (err) {
+    // NẾU CÓ LỖI: ROLLBACK tất cả thay đổi
     await client.query("ROLLBACK");
+
+    // TRẢ VỀ LỖI với thông tin chi tiết
     res.status(500).json({
-      message: err.message,
+      message: err.message, // Message từ throw new Error()
       error: {
-        code: err.code,
-        detail: err.detail,
-        constraint: err.constraint
+        code: err.code, // PostgreSQL error code (vd: 23505)
+        detail: err.detail, // Chi tiết lỗi từ database
+        constraint: err.constraint // Constraint bị vi phạm (nếu có)
       }
     });
   } finally {
+    // LUÔN LUÔN giải phóng connection về pool
     client.release();
   }
 });
@@ -1881,29 +1901,52 @@ app.get("/api/kiemke", verifyToken, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      console.log(" No user ID found in token");
+      console.log("No user ID found in token");
       return res.status(401).json({ error: "Thông tin người dùng không hợp lệ" });
     }
+
     const result = await pool.query(`
+        WITH vattu_can_kiem AS (
+            -- Chỉ lấy vật tư cần kiểm kê (có tồn kho > 0)
+            SELECT COUNT(DISTINCT idvattu) as total_vattu_can_kiem
+            FROM tonkho 
+            WHERE tonkhohientai > 0
+        ),
+        phieu_stats AS (
+            -- Thống kê từng phiếu kiểm kê
             SELECT 
                 kk.idkiemke,
                 kk.ngaykiem,
                 kk.idnguoidung,
                 nd.tendangnhap as tennguoidung,
-                COUNT(DISTINCT vt.idvattu) as tongsoluongvattu,
-                COUNT(DISTINCT lsk.idvattu) as soluongdakiem,
-                CASE 
-                    WHEN COUNT(DISTINCT lsk.idvattu) = COUNT(DISTINCT vt.idvattu) THEN 'hoan_thanh'
-                    ELSE 'dang_kiem'
-                END as trangthai
+                COUNT(DISTINCT lsk.idvattu) as soluongdakiem
             FROM kiemke kk
             LEFT JOIN nguoidung nd ON kk.idnguoidung = nd.idnguoidung
-            LEFT JOIN vattu vt ON 1=1
             LEFT JOIN lichsukiemke lsk ON kk.idkiemke = lsk.idkiemke
             WHERE kk.idnguoidung = $1
             GROUP BY kk.idkiemke, kk.ngaykiem, kk.idnguoidung, nd.tendangnhap
-            ORDER BY kk.ngaykiem DESC
-        `, [userId]);
+        )
+        SELECT 
+            ps.idkiemke,
+            ps.ngaykiem,
+            ps.idnguoidung,
+            ps.tennguoidung,
+            vck.total_vattu_can_kiem as tongsoluongvattu,  -- Chỉ vật tư cần kiểm
+            ps.soluongdakiem,
+            CASE 
+                WHEN ps.soluongdakiem >= vck.total_vattu_can_kiem 
+                THEN 'hoan_thanh'
+                ELSE 'dang_kiem'
+            END as trangthai,
+            -- Thêm phần trăm hoàn thành
+            ROUND(
+                (ps.soluongdakiem::decimal / NULLIF(vck.total_vattu_can_kiem, 0)) * 100, 2
+            ) as phantramhoanthanh
+        FROM phieu_stats ps
+        CROSS JOIN vattu_can_kiem vck
+        ORDER BY ps.ngaykiem DESC
+    `, [userId]);
+
     res.status(200).json(result.rows);
   } catch (err) {
     res.status(500).json({ error: "Lỗi server", details: err.message });
@@ -1944,6 +1987,7 @@ app.get("/api/kiemke/:id", verifyToken, async (req, res) => {
                 vt.tenvattu,
                 vt.ngayhethan,
                 tk.tonkhohientai,
+                tk.tonkhothucte,
                 lsk.soluonghaohut,
                 lsk.noidung,
                 CASE WHEN lsk.idvattu IS NOT NULL THEN true ELSE false END as checked
@@ -2004,8 +2048,6 @@ app.delete("/api/kiemke/:id", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Lỗi server khi xóa phiếu kiểm kê" });
   }
 });
-
-
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
