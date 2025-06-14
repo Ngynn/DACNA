@@ -2,17 +2,17 @@ import React, { useState, useEffect } from "react";
 //import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-    Box,
-    Table,
-    TableHead,
-    TableRow,
-    TableCell,
-    TableBody,
-    Paper,
-    TableContainer,
-    Button,
-    TextField,
-    TablePagination
+  Box,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Paper,
+  TableContainer,
+  Button,
+  TextField,
+  TablePagination
 } from "@mui/material";
 import LichSuThanhToan from "./thanhtoan/LichSuThanhToan";
 import ThanhToanLoHang from "./thanhtoan/ThanhToanLoHang";
@@ -23,7 +23,7 @@ const ThanhToan = () => {
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedLoHang, setSelectedLoHang] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [searchQuery, setSearchQuery] = useState("");
   //const navigate = useNavigate();
   const [rowsPerPage, setRowsPerPage] = useState(10); // Số dòng hiển thị mỗi trang
   const [currentPage, setCurrentPage] = useState(0); // Trang hiện tại
@@ -35,7 +35,7 @@ const ThanhToan = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          "http://localhost:5000/api/thanh-toan",
+          "http://localhost:3000/api/thanh-toan",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -75,7 +75,7 @@ const ThanhToan = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/thanh-toan", {
+      const response = await axios.get("http://localhost:3000/api/thanh-toan", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = response.data.map((loHang) => ({
@@ -207,7 +207,7 @@ const ThanhToan = () => {
 
       {/* Dialog thanh toán */}
       <ThanhToanLoHang
-        open={openDialog} 
+        open={openDialog}
         onClose={handleCloseDialog}
         loHang={selectedLoHang}
         onSuccess={reloadData}

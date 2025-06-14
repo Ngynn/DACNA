@@ -47,13 +47,13 @@ const XuatKho = () => {
       try {
         const token = localStorage.getItem("token");
         const vatTuResponse = await axios.get(
-          "http://localhost:5000/api/vattu",
+          "http://localhost:3000/api/vattu",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
         const nguoiDungResponse = await axios.get(
-          "http://localhost:5000/api/nguoidung",
+          "http://localhost:3000/api/nguoidung",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -85,15 +85,15 @@ const XuatKho = () => {
         vatTuGroups: vatTuGroups.map((group) => ({
           IDVatTu: parseInt(group.IDVatTu, 10),
           TenVatTu: group.TenVatTu,
-          SoLuong: parseInt(group.SoLuong, 10), 
+          SoLuong: parseInt(group.SoLuong, 10),
         })),
         NguoiYeuCau,
         PhoneNguoiYeuCau,
-        IDNguoiDung: parseInt(IDNguoiDung, 10), 
+        IDNguoiDung: parseInt(IDNguoiDung, 10),
       };
 
       // api
-      const response = await axios.post("http://localhost:5000/xuatkho", data, {
+      const response = await axios.post("http://localhost:3000/xuatkho", data, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

@@ -39,7 +39,7 @@ const NguoiDung = () => {
   const fetchNguoiDung = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/nguoidung", {
+      const response = await axios.get("http://localhost:3000/api/nguoidung", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -116,7 +116,7 @@ const NguoiDung = () => {
       if (selectedUser) {
         // Cập nhật người dùng
         await axios.put(
-          `http://localhost:5000/api/nguoidung/${selectedUser.idnguoidung}`,
+          `http://localhost:3000/api/nguoidung/${selectedUser.idnguoidung}`,
           formData,
           {
             headers: {
@@ -127,7 +127,7 @@ const NguoiDung = () => {
         alert("Cập nhật người dùng thành công!");
       } else {
         // Thêm người dùng mới
-        await axios.post("http://localhost:5000/api/dangky", formData, {
+        await axios.post("http://localhost:3000/api/dangky", formData, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -154,7 +154,7 @@ const NguoiDung = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:5000/api/nguoidung/${id}`, {
+        await axios.delete(`http://localhost:3000/api/nguoidung/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -179,7 +179,7 @@ const NguoiDung = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.put(
-          `http://localhost:5000/api/nguoidung/khoa/${id}`,
+          `http://localhost:3000/api/nguoidung/khoa/${id}`,
           { trangthai: newStatus },
           {
             headers: {

@@ -22,32 +22,32 @@ const ThemLoHang = () => {
 
     // lay info vat tu tu database va doc info trong file excel
     const fetchVatTuInfo = async (idvattuList, excelRows) => {
-    if (!idvattuList.length) {
-        setVatTuInfo([]);
-        return;
-    }
-    try {
-        const token = localStorage.getItem("token");
-        // lay ton kho tu db
-        const res = await axios.get("http://localhost:5000/tonkho", {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        // Lọc các vật tư có trong file Excel
-        const info = idvattuList.map((idvattu) => {
-            const excelRow = excelRows.find((row) => String(row.idvattu) === String(idvattu));
-            const dbRow = res.data.find((row) => String(row.idvattu) === String(idvattu));
-            return {
-                idvattu,
-                tenvattu: dbRow?.tenvattu || "",
-                soluong_excel: excelRow?.soluongthucte ?? excelRow?.soluong ?? "",
-                tonkhothucte: dbRow?.tonkhothucte ?? "",
-            };
-        });
-        setVatTuInfo(info);
-    } catch (error) {
-        setVatTuInfo([]);
-    }
-};
+        if (!idvattuList.length) {
+            setVatTuInfo([]);
+            return;
+        }
+        try {
+            const token = localStorage.getItem("token");
+            // lay ton kho tu db
+            const res = await axios.get("http://localhost:3000/tonkho", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            // Lọc các vật tư có trong file Excel
+            const info = idvattuList.map((idvattu) => {
+                const excelRow = excelRows.find((row) => String(row.idvattu) === String(idvattu));
+                const dbRow = res.data.find((row) => String(row.idvattu) === String(idvattu));
+                return {
+                    idvattu,
+                    tenvattu: dbRow?.tenvattu || "",
+                    soluong_excel: excelRow?.soluongthucte ?? excelRow?.soluong ?? "",
+                    tonkhothucte: dbRow?.tonkhothucte ?? "",
+                };
+            });
+            setVatTuInfo(info);
+        } catch (error) {
+            setVatTuInfo([]);
+        }
+    };
     // Hàm xử lý khi người dùng chọn file
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
@@ -65,7 +65,7 @@ const ThemLoHang = () => {
                 const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
                 setExcelData(json);
 
-               // Lấy danh sách id vật tư từ dữ liệu Excel
+                // Lấy danh sách id vật tư từ dữ liệu Excel
                 const idvattuList = Array.from(
                     new Set(json.map((row) => row.idvattu).filter((id) => id))
                 );
@@ -86,7 +86,7 @@ const ThemLoHang = () => {
 
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.post("http://localhost:5000/api/lohang/upload", formData, {
+            const res = await axios.post("http://localhost:3000/api/lohang/upload", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${token}`,
@@ -115,8 +115,8 @@ const ThemLoHang = () => {
         <Box sx={{ padding: "20px" }}>
             <h1>Nhập Lô Hàng</h1>
             <Typography variant="body1" sx={{ mb: 2 }}>
-                        Upload file Excel để nhập lô hàng. Vui lòng kiểm tra số lượng vật tư trước và sau khi nhập.
-                    </Typography>
+                Upload file Excel để nhập lô hàng. Vui lòng kiểm tra số lượng vật tư trước và sau khi nhập.
+            </Typography>
             <Input type="file" onChange={handleFileChange} />
             <Button variant="contained" color="primary" onClick={handleUpload} sx={{ marginLeft: "10px" }}>
                 Upload

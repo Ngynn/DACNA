@@ -28,7 +28,7 @@ const ChiTietAppbar = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/lichsugiaodich", {
+        const res = await axios.get("http://localhost:3000/lichsugiaodich", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

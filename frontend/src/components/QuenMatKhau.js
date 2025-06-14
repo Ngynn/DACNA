@@ -9,7 +9,7 @@ const QuenMatKhau = () => {
 
   const handleReset = async () => {
     try {
-      await axios.post("http://localhost:5000/api/quenmatkhau", { email });
+      await axios.post("http://localhost:3000/api/quenmatkhau", { email });
       alert("Yêu cầu khôi phục mật khẩu đã được gửi. Vui lòng kiểm tra email của bạn.");
     } catch (err) {
       // Hiển thị thông báo lỗi chi tiết nếu có, hoặc lỗi chung
@@ -23,12 +23,12 @@ const QuenMatKhau = () => {
         <div className="pw-form">
           <h2>Khôi phục mật khẩu</h2>
           <div className="input-group">
-          <input
-            type="text"
-            placeholder="Nhập email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+            <input
+              type="text"
+              placeholder="Nhập email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <button onClick={handleReset}>Lấy lại mật khẩu</button>
           <p

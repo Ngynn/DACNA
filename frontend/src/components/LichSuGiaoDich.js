@@ -37,7 +37,7 @@ const LichSuGiaoDich = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          "http://localhost:5000/lichsugiaodich",
+          "http://localhost:3000/lichsugiaodich",
           {
             headers: {
               Authorization: `Bearer ${token}`,

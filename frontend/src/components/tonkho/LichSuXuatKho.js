@@ -25,7 +25,7 @@ const LichSuXuatKho = ({ open, onClose, idVatTu }) => {
         try {
           const token = localStorage.getItem("token");
           const response = await axios.get(
-            `http://localhost:5000/api/tonkho/${idVatTu}/xuat`,
+            `http://localhost:3000/api/tonkho/${idVatTu}/xuat`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }

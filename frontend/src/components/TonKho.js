@@ -43,7 +43,7 @@ const TonKho = () => {
     const fetchTonKho = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/tonkho", {
+        const response = await axios.get("http://localhost:3000/tonkho", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -53,13 +53,13 @@ const ChucNangVatTu = ({
     try {
       if (editData) {
         await axios.put(
-          `http://localhost:5000/api/vattu/${editData.idvattu}`,
+          `http://localhost:3000/api/vattu/${editData.idvattu}`,
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         await axios.post(
-          "http://localhost:5000/api/vattu",
+          "http://localhost:3000/api/vattu",
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );

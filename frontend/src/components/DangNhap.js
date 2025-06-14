@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import {Typography} from "@mui/material";
+import { Typography } from "@mui/material";
 import Button from "@mui/material/Button";
-import "../styles/DangNhap.css"; 
+import "../styles/DangNhap.css";
 
 const DangNhap = () => {
   const [tendangnhap, setTendangnhap] = useState("");
@@ -17,7 +17,7 @@ const DangNhap = () => {
     setLoading(true); // Bắt đầu hiển thị Loading
     setError("");
     try {
-      const response = await axios.post("http://localhost:5000/api/dangnhap", {
+      const response = await axios.post("http://localhost:3000/api/dangnhap", {
         tendangnhap,
         matkhau,
       });
@@ -31,7 +31,8 @@ const DangNhap = () => {
 
       navigate("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.message || "Đăng nhập thất bại");    } finally {
+      setError(error.response?.data?.message || "Đăng nhập thất bại");
+    } finally {
       setLoading(false); // Kết thúc Loading sau khi có phản hồi từ server
     }
   };
@@ -63,18 +64,18 @@ const DangNhap = () => {
                 Quên mật khẩu?
               </p>
             </div>
-            <Button 
-             type="submit" 
-             variant="contained" 
-             color="primary" 
-             className="login-button" 
-             >
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              className="login-button"
+            >
               {loading ? "Đăng nhập..." : "Đăng nhập"}
             </Button>
           </form>
           <div className="error-message">
-          {error && <Typography >{error}</Typography>}
-        </div>
+            {error && <Typography >{error}</Typography>}
+          </div>
         </div>
       </div>
     </div>
