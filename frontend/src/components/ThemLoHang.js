@@ -29,7 +29,7 @@ const ThemLoHang = () => {
         try {
             const token = localStorage.getItem("token");
             // lay ton kho tu db
-            const res = await axios.get("http://localhost:5000/tonkho", {
+            const res = await axios.get("http://localhost:3000/tonkho", {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Lọc các vật tư có trong file Excel
