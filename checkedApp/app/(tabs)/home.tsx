@@ -137,19 +137,17 @@ export default function Home() {
 
     switch (activeTab) {
       case "inStock":
-        filteredByTab = tonkho.filter(
-          (item) => Number(item.tonkhohientai) > 30
-        );
+        filteredByTab = tonkho.filter((item) => Number(item.tonkhothucte) > 30);
         break;
       case "lowStock":
         filteredByTab = tonkho.filter(
           (item) =>
-            Number(item.tonkhohientai) > 0 && Number(item.tonkhohientai) <= 30
+            Number(item.tonkhothucte) > 0 && Number(item.tonkhothucte) <= 30
         );
         break;
       case "outOfStock":
         filteredByTab = tonkho.filter(
-          (item) => Number(item.tonkhohientai) === 0
+          (item) => Number(item.tonkhothucte) === 0
         );
         break;
       case "expired":
@@ -219,7 +217,7 @@ export default function Home() {
 
         case "stock":
           sortedItems = items.sort(
-            (a, b) => Number(a.tonkhohientai) - Number(b.tonkhohientai)
+            (a, b) => Number(a.tonkhothucte) - Number(b.tonkhothucte)
           );
           break;
 
@@ -332,10 +330,11 @@ export default function Home() {
     let stockStatus = "";
     let statusColor = "";
 
-    if (tonkho === 0) {
+    // Sử dụng tonkhothucte để xác định trạng thái hiển thị
+    if (tonkhothucte === 0) {
       stockStatus = "Hết hàng";
       statusColor = "#e74c3c"; // đỏ
-    } else if (tonkho > 0 && tonkho <= 30) {
+    } else if (tonkhothucte > 0 && tonkhothucte <= 30) {
       stockStatus = "Sắp hết";
       statusColor = "#f39c12"; // vàng cam
     } else {
@@ -458,6 +457,17 @@ export default function Home() {
             </Text>
           </View>
         )}
+
+        {/* Thêm chỉ báo lỗ (loss indicator) */}
+        {tonghaohut > 0 && (
+          <View style={styles.lossIndicator}>
+            <Ionicons name="arrow-down" size={12} color="#e74c3c" />
+            <Text style={styles.lossText}>
+              Lỗ: {formatCompactNumber(tonghaohut)}{" "}
+              {tonghaohut > 1000 ? "M" : "đ"}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -557,8 +567,6 @@ export default function Home() {
             style={[styles.tab, activeTab === "all" && styles.activeTab]}
             onPress={() => {
               setActiveTab("all");
-              // Có thể giữ nguyên tìm kiếm khi chuyển tab hoặc xóa với dòng dưới đây
-              // setSearchQuery("");
             }}
           >
             <Ionicons
@@ -1172,5 +1180,20 @@ const styles = StyleSheet.create({
   },
   resultsInfo: {
     flex: 1,
+  },
+  lossIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff5f5",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  lossText: {
+    fontSize: 10,
+    color: "#e74c3c",
+    fontWeight: "600",
+    marginLeft: 2,
   },
 });
