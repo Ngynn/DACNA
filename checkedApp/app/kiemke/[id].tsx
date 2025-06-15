@@ -18,14 +18,14 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import API_URL from "@/config/api";
 
 type TonKhoItem = {
-  id?: string;
   idvattu: number;
   tenvattu: string;
-  tonkhohientai: number;
-  tonkhothucte: number;
-  tonghaohut?: number;
+  tonkhohientai: number; // Tồn kho hiện tại (không đổi)
+  tonkhothucte_current: number; // Tồn kho thực tế hiện tại
+  tonkhothucte_base: number; // Tồn kho từ phiếu trước
+  tonghaohut_history: number; // Tổng hao hụt từ các phiếu trước
+  soluonghaohut_current: number; // Hao hụt phiếu hiện tại
   ngayhethan?: string;
-  soluonghaohut?: number;
   noidung?: string;
   checked: boolean;
 };
@@ -61,37 +61,31 @@ export default function KiemKeDetail() {
         return;
       }
 
+      // ✅ Gọi endpoint đã được enhance
       const response = await axios.get(`${API_URL}/api/kiemke/${idkiemke}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const { vattu } = response.data;
 
-      const mappedData: TonKhoItem[] = vattu.map(
-        (item: any, index: number) => ({
-          id: `${item.idvattu}-${index}`,
-          idvattu: item.idvattu,
-          tenvattu: item.tenvattu || "Không có tên",
-          // ✅ Chuyển đổi sang number một cách rõ ràng
-          tonkhohientai: Number(item.tonkhohientai) || 0,
-          tonkhothucte: Number(item.tonkhothucte) || 0,
-          tonghaohut: Number(item.tonghaohut) || 0,
-          ngayhethan: item.ngayhethan,
-          soluonghaohut: Number(item.soluonghaohut) || 0,
-          noidung: item.noidung || "",
-          checked: item.checked || false,
-        })
-      );
+      // ✅ Map data mới với các field từ backend
+      const mappedData: TonKhoItem[] = vattu.map((item: any) => ({
+        idvattu: item.idvattu,
+        tenvattu: item.tenvattu || "Không có tên",
+        tonkhohientai: Number(item.tonkhohientai) || 0,
+        tonkhothucte_current: Number(item.tonkhothucte_current) || 0,
+        tonkhothucte_base: Number(item.tonkhothucte_base) || 0,
+        tonghaohut_history: Number(item.tonghaohut_history) || 0,
+        soluonghaohut_current: Number(item.soluonghaohut_current) || 0,
+        ngayhethan: item.ngayhethan,
+        noidung: item.noidung || "",
+        checked: !!item.checked,
+      }));
 
-      const uniqueData = mappedData.filter(
-        (item, index, arr) =>
-          arr.findIndex((t) => t.idvattu === item.idvattu) === index
-      );
-      uniqueData.sort((a, b) => a.idvattu - b.idvattu);
-
-      setTonkhoData(uniqueData);
+      setTonkhoData(mappedData);
+      // console.log("✅ Mapped data:", mappedData.slice(0, 3)); // Debug log
     } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu:", error);
+      // console.error("Lỗi khi lấy dữ liệu:", error);
       Alert.alert("Lỗi", "Không thể tải dữ liệu tồn kho");
     } finally {
       setLoading(false);
@@ -109,7 +103,7 @@ export default function KiemKeDetail() {
         {
           idkiemke: parseInt(idkiemke as string),
           idvattu: item.idvattu,
-          soluonghaohut: item.soluonghaohut || 0,
+          soluonghaohut: item.soluonghaohut_current || 0,
           noidung: item.noidung || "",
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -121,7 +115,8 @@ export default function KiemKeDetail() {
             ? {
                 ...tonkhoItem,
                 checked: true,
-                soluonghaohut: item.soluonghaohut,
+                soluonghaohut_current: item.soluonghaohut_current,
+                tonkhothucte_current: item.tonkhothucte_current,
                 noidung: item.noidung,
               }
             : tonkhoItem
@@ -131,7 +126,7 @@ export default function KiemKeDetail() {
       Alert.alert("Thành công", "Đã lưu thông tin kiểm kê");
       return true;
     } catch (error) {
-      console.error("Lỗi khi lưu kiểm kê:", error);
+      // console.error("Lỗi khi lưu kiểm kê:", error);
       Alert.alert("Lỗi", "Không thể lưu thông tin kiểm kê");
       return false;
     }
@@ -158,7 +153,7 @@ export default function KiemKeDetail() {
         break;
       case "haohut":
         filtered = tonkhoData.filter(
-          (item) => item.checked && (item.soluonghaohut || 0) > 0
+          (item) => item.checked && (item.soluonghaohut_current || 0) > 0
         );
         break;
       default:
@@ -180,7 +175,7 @@ export default function KiemKeDetail() {
   const handleOpenModal = (item: TonKhoItem) => {
     setSelectedItem(item);
     setFormData({
-      soluonghaohut: item.soluonghaohut?.toString() || "",
+      soluonghaohut: item.soluonghaohut_current?.toString() || "",
       noidung: item.noidung || "",
     });
     setShowModal(true);
@@ -190,19 +185,33 @@ export default function KiemKeDetail() {
     if (!selectedItem) return;
 
     const soluonghaohut = parseInt(formData.soluonghaohut) || 0;
-    // const tonkho = selectedItem.tonkhothucte || selectedItem.tonkhohientai || 0;
+    const tonkhoBase = selectedItem.tonkhothucte_base || 0;
 
-    const tonkho = selectedItem.tonkhohientai || 0;
-
-    if (soluonghaohut < 0 || soluonghaohut > tonkho) {
-      Alert.alert("Lỗi", `Số lượng hao hụt phải từ 0 đến ${tonkho}`);
+    if (soluonghaohut < 0) {
+      Alert.alert("Lỗi", "Số lượng hao hụt không thể âm");
       return;
     }
 
+    if (soluonghaohut > tonkhoBase) {
+      Alert.alert(
+        "Lỗi",
+        `Số lượng hao hụt (${soluonghaohut}) không thể lớn hơn tồn kho từ phiếu trước (${tonkhoBase})\n\n` +
+          `📦 Tồn kho hiện tại: ${selectedItem.tonkhohientai}\n` +
+          `📋 Tồn kho từ phiếu trước: ${tonkhoBase}\n` +
+          `💥 Hao hụt lịch sử: ${selectedItem.tonghaohut_history}\n\n` +
+          `💡 Bạn chỉ có thể hao hụt tối đa ${tonkhoBase} từ tồn kho của phiếu trước.`
+      );
+      return;
+    }
+
+    const expectedResult = tonkhoBase - soluonghaohut;
+
     const updatedItem: TonKhoItem = {
       ...selectedItem,
-      soluonghaohut,
+      soluonghaohut_current: soluonghaohut,
+      tonkhothucte_current: expectedResult,
       noidung: formData.noidung,
+      checked: true,
     };
 
     saveLichSuKiemKe(updatedItem);
@@ -210,10 +219,6 @@ export default function KiemKeDetail() {
   };
 
   const renderItem = ({ item }: { item: TonKhoItem }) => {
-    // ✅ KHÔNG trừ thêm soluonghaohut vì tonkhothucte đã được tính sẵn
-    // tonkhothucte = tonkhohientai - tonghaohut (đã bao gồm soluonghaohut)
-    const tonkhoSauKiemKe = item.tonkhothucte;
-
     return (
       <View style={styles.itemContainer}>
         {/* Header */}
@@ -245,55 +250,86 @@ export default function KiemKeDetail() {
           </View>
         </View>
 
-        {/* ✅ Thông tin tồn kho chi tiết */}
+        {/* ✅ Enhanced Stock Info với Before/After Logic */}
         <View style={styles.stockInfo}>
+          {/* Tồn kho hiện tại (cố định) */}
           <View style={styles.stockRow}>
-            <Text style={styles.stockLabel}>Tồn kho hiện tại:</Text>
+            <Text style={styles.stockLabel}>📦 Tồn kho hiện tại:</Text>
             <Text style={styles.stockValue}>{item.tonkhohientai}</Text>
           </View>
 
-          {/* ✅ Hiển thị tổng hao hụt từ tất cả các lần kiểm kê */}
-          {(item.tonghaohut || 0) > 0 && (
+          {/* Hao hụt lịch sử */}
+          {item.tonghaohut_history > 0 && (
             <View style={styles.stockRow}>
-              <Text style={styles.stockLabel}>Tổng hao hụt (lịch sử):</Text>
+              <Text style={styles.stockLabel}>💥 Hao hụt lịch sử:</Text>
               <Text style={[styles.stockValue, { color: "#e74c3c" }]}>
-                {item.tonghaohut}
+                {item.tonghaohut_history}
               </Text>
             </View>
           )}
 
-          {/* ✅ Hiển thị tồn kho thực tế (đã trừ tổng hao hụt) */}
-          <View style={styles.stockRow}>
-            <Text style={styles.stockLabel}>Tồn kho thực tế:</Text>
-            <Text style={[styles.stockValue, { color: "#8e44ad" }]}>
-              {item.tonkhothucte}
-            </Text>
+          {/* ✅ BEFORE/AFTER Comparison */}
+          <View style={styles.beforeAfterContainer}>
+            <Text style={styles.beforeAfterTitle}>🔄 Luồng kiểm kê:</Text>
+
+            <View style={styles.beforeAfterRow}>
+              <View style={styles.beforeSection}>
+                <Text style={styles.beforeAfterLabel}>TRƯỚC KIỂM KÊ</Text>
+                <Text style={styles.beforeAfterValue}>
+                  {item.tonkhothucte_base}
+                </Text>
+                <Text style={styles.beforeAfterSubtext}>(Từ phiếu trước)</Text>
+              </View>
+
+              {item.checked && (
+                <>
+                  <View style={styles.arrowSection}>
+                    <Ionicons name="arrow-forward" size={20} color="#e74c3c" />
+                    <Text style={styles.arrowText}>
+                      -{item.soluonghaohut_current}
+                    </Text>
+                  </View>
+
+                  <View style={styles.afterSection}>
+                    <Text style={styles.beforeAfterLabel}>SAU KIỂM KÊ</Text>
+                    <Text
+                      style={[styles.beforeAfterValue, { color: "#e74c3c" }]}
+                    >
+                      {item.tonkhothucte_current}
+                    </Text>
+                    <Text style={styles.beforeAfterSubtext}>
+                      (Cho phiếu sau)
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {!item.checked && (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.pendingLabel}>CHƯA KIỂM KÊ</Text>
+                  <Text style={styles.pendingValue}>?</Text>
+                </View>
+              )}
+            </View>
           </View>
 
+          {/* Chi tiết hao hụt lần này */}
           {item.checked && (
-            <>
+            <View style={styles.currentLossContainer}>
               <View style={styles.stockRow}>
-                <Text style={styles.stockLabel}>Hao hụt lần này:</Text>
+                <Text style={styles.stockLabel}>🔥 Hao hụt lần này:</Text>
                 <Text
                   style={[
                     styles.stockValue,
-                    item.soluonghaohut! > 0
+                    item.soluonghaohut_current > 0
                       ? styles.lossText
                       : styles.normalText,
                   ]}
                 >
-                  {item.soluonghaohut || 0}
+                  {item.soluonghaohut_current}
                 </Text>
               </View>
-
-              {/* ✅ Sửa logic hiển thị kết quả */}
-              <View style={[styles.stockRow, styles.resultRow]}>
-                <Text style={styles.resultLabel}>
-                  Tồn kho hiện tại (đã kiểm):
-                </Text>
-                <Text style={styles.resultValue}>{tonkhoSauKiemKe}</Text>
-              </View>
-            </>
+            </View>
           )}
         </View>
 
@@ -304,23 +340,7 @@ export default function KiemKeDetail() {
           </View>
         )}
 
-        {/* Hạn sử dụng */}
-        {item.ngayhethan && (
-          <View style={styles.expiryContainer}>
-            <Text
-              style={[
-                styles.expiryText,
-                new Date(item.ngayhethan) < new Date()
-                  ? styles.expiredText
-                  : styles.validText,
-              ]}
-            >
-              HSD: {new Date(item.ngayhethan).toLocaleDateString("vi-VN")}
-            </Text>
-          </View>
-        )}
-
-        {/* Button */}
+        {/* Action Button */}
         <TouchableOpacity
           style={[
             styles.actionButton,
@@ -347,11 +367,11 @@ export default function KiemKeDetail() {
 
     // ✅ Đảm bảo cộng số, không phải string
     const totalHaoHutLanNay = tonkhoData.reduce(
-      (sum, item) => sum + (Number(item.soluonghaohut) || 0),
+      (sum, item) => sum + (Number(item.soluonghaohut_current) || 0),
       0
     );
     const totalHaoHutLichSu = tonkhoData.reduce(
-      (sum, item) => sum + (Number(item.tonghaohut) || 0),
+      (sum, item) => sum + (Number(item.tonghaohut_history) || 0),
       0
     );
     const totalTonKhoHienTai = tonkhoData.reduce(
@@ -359,7 +379,7 @@ export default function KiemKeDetail() {
       0
     );
     const totalTonKhoThucTe = tonkhoData.reduce(
-      (sum, item) => sum + (Number(item.tonkhothucte) || 0),
+      (sum, item) => sum + (Number(item.tonkhothucte_current) || 0),
       0
     );
 
@@ -485,8 +505,8 @@ export default function KiemKeDetail() {
       {/* List */}
       <FlatList
         data={filteredData}
+        keyExtractor={(item) => `item-${item.idvattu}`}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id || `${item.idvattu}`}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -522,23 +542,42 @@ export default function KiemKeDetail() {
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {/* ✅ Enhanced Modal Info Section */}
             <View style={styles.infoSection}>
-              <Text style={styles.infoTitle}>Thông tin vật tư</Text>
+              <Text style={styles.infoTitle}>📋 Thông tin kiểm kê</Text>
               <Text style={styles.infoText}>ID: {selectedItem?.idvattu}</Text>
-              <Text style={styles.infoText}>
-                Tồn kho hiện tại: {selectedItem?.tonkhohientai}
-              </Text>
+              <Text style={styles.infoText}>Tên: {selectedItem?.tenvattu}</Text>
 
-              {/* ✅ Hiển thị rõ ràng các loại hao hụt */}
-              {(selectedItem?.tonghaohut || 0) > 0 && (
-                <Text style={[styles.infoText, { color: "#e74c3c" }]}>
-                  Tổng hao hụt (lịch sử): {selectedItem?.tonghaohut}
-                </Text>
-              )}
+              <View style={styles.workflowContainer}>
+                <Text style={styles.workflowTitle}>🔄 Luồng kiểm kê:</Text>
 
-              <Text style={styles.infoText}>
-                Tồn kho thực tế: {selectedItem?.tonkhothucte}
-              </Text>
+                <View style={styles.workflowStep}>
+                  <Text style={styles.workflowLabel}>1️⃣ Tồn kho hiện tại:</Text>
+                  <Text style={styles.workflowValue}>
+                    {selectedItem?.tonkhohientai}
+                  </Text>
+                </View>
+
+                <View style={styles.workflowStep}>
+                  <Text style={styles.workflowLabel}>
+                    2️⃣ Tồn kho từ phiếu trước:
+                  </Text>
+                  <Text style={styles.workflowValue}>
+                    {selectedItem?.tonkhothucte_base}
+                  </Text>
+                </View>
+
+                {selectedItem && selectedItem.tonghaohut_history > 0 && (
+                  <View style={styles.workflowStep}>
+                    <Text style={styles.workflowLabel}>
+                      3️⃣ Hao hụt lịch sử:
+                    </Text>
+                    <Text style={[styles.workflowValue, { color: "#e74c3c" }]}>
+                      {selectedItem.tonghaohut_history}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
 
             <View style={styles.inputSection}>
@@ -546,12 +585,28 @@ export default function KiemKeDetail() {
               <TextInput
                 style={styles.textInput}
                 value={formData.soluonghaohut}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, soluonghaohut: text }))
-                }
+                onChangeText={(text) => {
+                  setFormData((prev) => ({ ...prev, soluonghaohut: text }));
+                  // ✅ Hiển thị preview kết quả
+                  const predicted =
+                    (selectedItem?.tonkhothucte_base || 0) -
+                    (parseInt(text) || 0);
+                  if (predicted < 0 && text) {
+                    // Could show a warning here
+                  }
+                }}
                 placeholder="Nhập số lượng hao hụt"
                 keyboardType="numeric"
               />
+
+              {/* ✅ Preview kết quả */}
+              {formData.soluonghaohut && (
+                <Text style={styles.previewText}>
+                  Dự kiến tồn kho sau kiểm kê:{" "}
+                  {(selectedItem?.tonkhothucte_base || 0) -
+                    (parseInt(formData.soluonghaohut) || 0)}
+                </Text>
+              )}
             </View>
 
             <View style={styles.inputSection}>
@@ -939,5 +994,140 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#2c3e50",
+  },
+  calculationNote: {
+    backgroundColor: "#f0f8ff",
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#3498db",
+  },
+  calculationText: {
+    fontSize: 12,
+    color: "#2c3e50",
+    fontStyle: "italic",
+  },
+  previewText: {
+    fontSize: 12,
+    color: "#7f8c8d",
+    marginTop: 4,
+    fontStyle: "italic",
+  },
+  beforeAfterContainer: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#e3e8ff",
+  },
+  beforeAfterTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    marginBottom: 8,
+  },
+  beforeAfterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  beforeSection: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    padding: 10,
+    borderRadius: 6,
+  },
+  afterSection: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#fef2f2",
+    padding: 10,
+    borderRadius: 6,
+  },
+  arrowSection: {
+    alignItems: "center",
+    marginHorizontal: 12,
+  },
+  arrowText: {
+    fontSize: 11,
+    color: "#e74c3c",
+    fontWeight: "bold",
+    marginTop: 2,
+  },
+  beforeAfterLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#64748b",
+    marginBottom: 4,
+  },
+  beforeAfterValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1e293b",
+  },
+  beforeAfterSubtext: {
+    fontSize: 9,
+    color: "#94a3b8",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  pendingSection: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 10,
+    borderRadius: 6,
+    opacity: 0.7,
+  },
+  pendingLabel: {
+    fontSize: 10,
+    color: "#9ca3af",
+    marginBottom: 4,
+  },
+  pendingValue: {
+    fontSize: 16,
+    color: "#9ca3af",
+    fontWeight: "bold",
+  },
+  workflowContainer: {
+    backgroundColor: "#f0f8ff",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#3498db",
+  },
+  workflowTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    marginBottom: 8,
+  },
+  workflowStep: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  workflowLabel: {
+    fontSize: 12,
+    color: "#64748b",
+    flex: 1,
+  },
+  workflowValue: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#2c3e50",
+  },
+  currentLossContainer: {
+    backgroundColor: "#fef2f2",
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#ef4444",
   },
 });

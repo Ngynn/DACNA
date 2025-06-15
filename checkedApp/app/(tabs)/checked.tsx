@@ -9,6 +9,9 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
+  TextInput,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -28,6 +31,10 @@ type PhieuKiemKe = {
 };
 
 export default function Checked() {
+  // ✅ Thêm search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+
   const [phieuKiemKe, setPhieuKiemKe] = useState<PhieuKiemKe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -255,9 +262,9 @@ export default function Checked() {
                   return;
                 }
 
-                // console.log(
-                //   `Deleting phieu ${phieu.idkiemke} (${phieuDateString})`
-                // );
+                console.log(
+                  `Deleting phieu ${phieu.idkiemke} (${phieuDateString})`
+                );
 
                 const response = await axios.delete(
                   `${API_URL}/api/kiemke/${phieu.idkiemke}`,
@@ -266,7 +273,7 @@ export default function Checked() {
                   }
                 );
 
-                // console.log(" Delete response:", response.data);
+                console.log(" Delete response:", response.data);
 
                 setPhieuKiemKe((prevPhieus) =>
                   prevPhieus.filter((p) => p.idkiemke !== phieu.idkiemke)
@@ -277,7 +284,7 @@ export default function Checked() {
                   `Đã xóa phiếu kiểm kê #${phieu.idkiemke} (${phieuDateString}) thành công`
                 );
               } catch (error) {
-                // console.error(" Error deleting phieu:", error);
+                console.error(" Error deleting phieu:", error);
 
                 if (axios.isAxiosError(error)) {
                   const errorMessage =
@@ -293,7 +300,7 @@ export default function Checked() {
         ]
       );
     } catch (error) {
-      // console.error("Error in deletePhieuKiemKe:", error);
+      console.error("Error in deletePhieuKiemKe:", error);
       Alert.alert("Lỗi", "Có lỗi xảy ra khi xóa phiếu");
     }
   };
@@ -355,11 +362,87 @@ export default function Checked() {
     return !hasPhieuToday;
   };
 
+  // ✅ Search function - filter trên dữ liệu đã có
+  const getFilteredPhieuKiemKe = (): PhieuKiemKe[] => {
+    if (!searchQuery.trim()) {
+      return phieuKiemKe;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+
+    return phieuKiemKe.filter((phieu) => {
+      // ✅ Tìm theo ID phiếu
+      const matchId = phieu.idkiemke.toString().includes(query);
+
+      // ✅ Tìm theo tên người dùng
+      const matchUser = phieu.tennguoidung.toLowerCase().includes(query);
+
+      // ✅ Tìm theo ngày (nhiều format)
+      const phieuDate = new Date(phieu.ngaykiem);
+
+      // Format: DD/MM/YYYY
+      const dateVN = phieuDate.toLocaleDateString("vi-VN");
+      const matchDateVN = dateVN.includes(query);
+
+      // Format: YYYY-MM-DD
+      const dateISO = phieuDate.toISOString().split("T")[0];
+      const matchDateISO = dateISO.includes(query);
+
+      // Format: DD/MM
+      const dateDDMM = `${String(phieuDate.getDate()).padStart(
+        2,
+        "0"
+      )}/${String(phieuDate.getMonth() + 1).padStart(2, "0")}`;
+      const matchDateDDMM = dateDDMM.includes(query);
+
+      // Format: Ngày trong tháng (1-31)
+      const dayOfMonth = phieuDate.getDate().toString();
+      const matchDay = query === dayOfMonth || query === `0${dayOfMonth}`;
+
+      // Format: Tháng (1-12)
+      const month = (phieuDate.getMonth() + 1).toString();
+      const matchMonth = query === month || query === `0${month}`;
+
+      // ✅ Tìm theo trạng thái
+      const matchStatus =
+        phieu.trangthai === "hoan_thanh"
+          ? "hoàn thành".includes(query) ||
+            "hoan thanh".includes(query) ||
+            "completed".includes(query)
+          : "đang kiểm".includes(query) ||
+            "dang kiem".includes(query) ||
+            "in progress".includes(query);
+
+      return (
+        matchId ||
+        matchUser ||
+        matchDateVN ||
+        matchDateISO ||
+        matchDateDDMM ||
+        matchDay ||
+        matchMonth ||
+        matchStatus
+      );
+    });
+  };
+
+  // ✅ Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setShowSearch(false);
+    Keyboard.dismiss();
+  };
+
+  // ✅ Get current display data
+  const getCurrentDisplayData = () => {
+    return getFilteredPhieuKiemKe();
+  };
+
   // Cập nhật renderPhieuItem để hiển thị nút xóa cho tất cả phiếu
   const renderPhieuItem = ({ item }: { item: PhieuKiemKe }) => {
-    // Sử dụng phantramhoanthanh từ backend hoặc tính lại
+    // Sử dụng phantramhoanthanh từ API hoặc tính fallback
     const progressPercent =
-      item.phantramhoanthanh ||
+      item.phantramhoanthanh ??
       (item.tongsoluongvattu > 0
         ? Math.round((item.soluongdakiem / item.tongsoluongvattu) * 100)
         : 0);
@@ -440,6 +523,7 @@ export default function Checked() {
             <Text style={styles.progressText}>
               Tiến độ: {item.soluongdakiem}/{item.tongsoluongvattu} vật tư
             </Text>
+
             <Text style={styles.progressPercent}>{progressPercent}%</Text>
           </View>
 
@@ -459,225 +543,372 @@ export default function Checked() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Phiếu kiểm kê</Text>
-
-        <View style={styles.headerActions}>
-          {canCreateTodayPhieu() ? (
-            <TouchableOpacity
-              onPress={() => setShowCreateModal(true)}
-              style={styles.createButton}
-            >
-              <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.createButtonText}>Tạo phiếu hôm nay</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => {
-                const todayPhieu = findTodayPhieu();
-                if (todayPhieu) {
-                  openPhieuDetail(todayPhieu);
-                } else {
-                  Alert.alert(
-                    "Thông báo",
-                    "Không tìm thấy phiếu kiểm kê hôm nay"
-                  );
-                }
-              }}
-              style={styles.todayPhieuButton}
-            >
-              <Ionicons name="checkmark-circle" size={20} color="#27ae60" />
-              <Text style={styles.todayPhieuText}>Mở phiếu hôm nay</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{phieuKiemKe.length}</Text>
-          <Text style={styles.statLabel}>Tổng phiếu</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>
-            {phieuKiemKe.filter((p) => p.trangthai === "dang_kiem").length}
-          </Text>
-          <Text style={styles.statLabel}>Đang kiểm</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>
-            {phieuKiemKe.filter((p) => p.trangthai === "hoan_thanh").length}
-          </Text>
-          <Text style={styles.statLabel}>Hoàn thành</Text>
-        </View>
-      </View>
-
-      {/* List */}
-      <FlatList
-        data={phieuKiemKe}
-        renderItem={renderPhieuItem}
-        keyExtractor={(item) => item.idkiemke.toString()}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="document-text-outline" size={64} color="#bdc3c7" />
-            <Text style={styles.emptyText}>Chưa có phiếu kiểm kê nào</Text>
-            <Text style={styles.emptySubText}>
-              {canCreateTodayPhieu()
-                ? 'Nhấn "Tạo phiếu" để bắt đầu'
-                : "Hôm nay đã có phiếu kiểm kê"}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Phiếu kiểm kê</Text>
+            <Text style={styles.headerSubtitle}>
+              {searchQuery.trim()
+                ? "Kết quả tìm kiếm"
+                : `${phieuKiemKe.length} phiếu`}
             </Text>
+          </View>
 
-            {canCreateTodayPhieu() && (
+          <View style={styles.headerRight}>
+            {/* ✅ Search Toggle Button */}
+            <TouchableOpacity
+              onPress={() => setShowSearch(!showSearch)}
+              style={[
+                styles.headerIconButton,
+                showSearch && styles.headerIconButtonActive,
+              ]}
+            >
+              <Ionicons
+                name="search"
+                size={20}
+                color={showSearch ? "#fff" : "#3498db"}
+              />
+            </TouchableOpacity>
+
+            {/* ✅ Conditional Main Action Button */}
+            {canCreateTodayPhieu() ? (
               <TouchableOpacity
                 onPress={() => setShowCreateModal(true)}
-                style={styles.emptyCreateButton}
+                style={styles.primaryActionButton}
               >
-                <Ionicons name="add-circle-outline" size={24} color="#3498db" />
-                <Text style={styles.emptyCreateText}>Tạo phiếu hôm nay</Text>
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={styles.primaryActionText}>Tạo phiếu</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  const todayPhieu = findTodayPhieu();
+                  if (todayPhieu) {
+                    openPhieuDetail(todayPhieu);
+                  } else {
+                    Alert.alert(
+                      "Thông báo",
+                      "Không tìm thấy phiếu kiểm kê hôm nay"
+                    );
+                  }
+                }}
+                style={styles.secondaryActionButton}
+              >
+                <Ionicons name="today" size={18} color="#27ae60" />
+                <Text style={styles.secondaryActionText}>Hôm nay</Text>
               </TouchableOpacity>
             )}
           </View>
-        }
-      />
+        </View>
 
-      {/* Create Modal */}
-      <Modal visible={showCreateModal} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {canCreateTodayPhieu()
-                  ? "Tạo phiếu kiểm kê hôm nay"
-                  : "Không thể tạo phiếu"}
-              </Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                <Ionicons name="close" size={24} color="#7f8c8d" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalContent}>
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar-outline" size={20} color="#3498db" />
-                <Text style={styles.infoText}>
-                  Ngày kiểm: {new Date().toLocaleDateString("vi-VN")}
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Ionicons name="person-outline" size={20} color="#3498db" />
-                <Text style={styles.infoText}>Người kiểm: Bạn</Text>
-              </View>
-
-              <View style={styles.validationSection}>
-                {canCreateTodayPhieu() ? (
-                  <View style={styles.validationSuccessRow}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color="#27ae60"
-                    />
-                    <View style={styles.validationTextContainer}>
-                      <Text style={styles.validationTextSuccess}>
-                        Có thể tạo phiếu kiểm kê
-                      </Text>
-                      <Text style={styles.validationSubText}>
-                        Hôm nay chưa có phiếu kiểm kê nào
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.validationErrorRow}>
-                    <Ionicons name="close-circle" size={24} color="#e74c3c" />
-                    <View style={styles.validationTextContainer}>
-                      <Text style={styles.validationTextError}>
-                        Không thể tạo phiếu mới
-                      </Text>
-                      <Text style={styles.validationSubText}>
-                        Hôm nay đã có phiếu kiểm kê rồi
-                      </Text>
-                    </View>
-                  </View>
+        {/* ✅ Search Panel (Collapsible) */}
+        {showSearch && (
+          <View style={styles.searchPanel}>
+            <View style={styles.searchInputWrapper}>
+              <View style={styles.searchInputContainer}>
+                <Ionicons name="search" size={16} color="#7f8c8d" />
+                <TextInput
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Tìm theo ID, ngày, tên..."
+                  placeholderTextColor="#bdc3c7"
+                  returnKeyType="search"
+                  autoFocus={showSearch}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery("")}
+                    style={styles.clearInputButton}
+                  >
+                    <Ionicons name="close-circle" size={16} color="#7f8c8d" />
+                  </TouchableOpacity>
                 )}
               </View>
 
-              {/* Warning luôn hiển thị */}
-              <View style={styles.warningSection}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={20}
-                  color="#f39c12"
-                />
-                <Text style={styles.warningText}>
-                  Quy định: Mỗi ngày chỉ được tạo 1 phiếu kiểm kê
+              {/* ✅ Clear All Button */}
+              {(searchQuery.trim() || showSearch) && (
+                <TouchableOpacity
+                  onPress={clearSearch}
+                  style={styles.clearAllButton}
+                >
+                  <Text style={styles.clearAllText}>Xóa</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ✅ Search Results Summary */}
+            {searchQuery.trim() ? (
+              <View style={styles.searchSummary}>
+                <Ionicons name="filter" size={14} color="#3498db" />
+                <Text style={styles.searchSummaryText}>
+                  {getCurrentDisplayData().length} / {phieuKiemKe.length} phiếu
                 </Text>
               </View>
+            ) : (
+              /* ✅ Quick Search Tags */
+              <View style={styles.quickSearchContainer}>
+                <Text style={styles.quickSearchLabel}>Tìm nhanh:</Text>
+                <View style={styles.quickSearchTags}>
+                  {["hôm nay", "hoàn thành", "đang kiểm"].map((tag) => (
+                    <TouchableOpacity
+                      key={tag}
+                      style={styles.quickSearchTag}
+                      onPress={() => setSearchQuery(tag)}
+                    >
+                      <Text style={styles.quickSearchTagText}>{tag}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
-              {canCreateTodayPhieu() ? (
-                <Text style={styles.confirmText}>
-                  Phiếu kiểm kê sẽ bao gồm tất cả vật tư hiện có trong kho để
-                  bạn thực hiện kiểm kê.
-                </Text>
+        {/* ✅ Compact Stats Bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statChip}>
+            <Text style={styles.statChipNumber}>
+              {getCurrentDisplayData().length}
+            </Text>
+            <Text style={styles.statChipLabel}>
+              {searchQuery.trim() ? "Tìm thấy" : "Tổng"}
+            </Text>
+          </View>
+
+          <View style={styles.statChip}>
+            <Text style={[styles.statChipNumber, { color: "#f39c12" }]}>
+              {
+                getCurrentDisplayData().filter(
+                  (p) => p.trangthai === "dang_kiem"
+                ).length
+              }
+            </Text>
+            <Text style={styles.statChipLabel}>Đang kiểm</Text>
+          </View>
+
+          <View style={styles.statChip}>
+            <Text style={[styles.statChipNumber, { color: "#27ae60" }]}>
+              {
+                getCurrentDisplayData().filter(
+                  (p) => p.trangthai === "hoan_thanh"
+                ).length
+              }
+            </Text>
+            <Text style={styles.statChipLabel}>Hoàn thành</Text>
+          </View>
+
+          {/* ✅ Quick Action trong Stats Bar */}
+          {findTodayPhieu() && (
+            <TouchableOpacity
+              style={styles.todayQuickAccess}
+              onPress={() => openPhieuDetail(findTodayPhieu()!)}
+            >
+              <Ionicons name="flash" size={14} color="#e67e22" />
+              <Text style={styles.todayQuickText}>Phiếu hôm nay</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* List */}
+        <FlatList
+          data={getCurrentDisplayData()}
+          renderItem={renderPhieuItem}
+          keyExtractor={(item) => item.idkiemke.toString()}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name={
+                  searchQuery.trim()
+                    ? "search-outline"
+                    : "document-text-outline"
+                }
+                size={64}
+                color="#bdc3c7"
+              />
+              <Text style={styles.emptyText}>
+                {searchQuery.trim()
+                  ? `Không tìm thấy phiếu nào cho "${searchQuery}"`
+                  : "Chưa có phiếu kiểm kê nào"}
+              </Text>
+              <Text style={styles.emptySubText}>
+                {searchQuery.trim()
+                  ? "Thử thay đổi từ khóa tìm kiếm"
+                  : canCreateTodayPhieu()
+                  ? 'Nhấn "Tạo phiếu" để bắt đầu'
+                  : "Hôm nay đã có phiếu kiểm kê"}
+              </Text>
+
+              {searchQuery.trim() ? (
+                <TouchableOpacity
+                  onPress={clearSearch}
+                  style={styles.emptyCreateButton}
+                >
+                  <Ionicons name="arrow-back" size={24} color="#3498db" />
+                  <Text style={styles.emptyCreateText}>Quay lại danh sách</Text>
+                </TouchableOpacity>
               ) : (
-                <Text style={styles.blockText}>
-                  Bạn có thể mở phiếu kiểm kê có sẵn để tiếp tục công việc hoặc
-                  đợi đến ngày mai để tạo phiếu mới.
-                </Text>
+                canCreateTodayPhieu() && (
+                  <TouchableOpacity
+                    onPress={() => setShowCreateModal(true)}
+                    style={styles.emptyCreateButton}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={24}
+                      color="#3498db"
+                    />
+                    <Text style={styles.emptyCreateText}>
+                      Tạo phiếu hôm nay
+                    </Text>
+                  </TouchableOpacity>
+                )
               )}
             </View>
+          }
+        />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowCreateModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>
-                  {canCreateTodayPhieu() ? "Hủy" : "Đóng"}
+        {/* Create Modal */}
+        <Modal
+          visible={showCreateModal}
+          animationType="slide"
+          transparent={true}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {canCreateTodayPhieu()
+                    ? "Tạo phiếu kiểm kê hôm nay"
+                    : "Không thể tạo phiếu"}
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                  <Ionicons name="close" size={24} color="#7f8c8d" />
+                </TouchableOpacity>
+              </View>
 
-              {canCreateTodayPhieu() ? (
+              <View style={styles.modalContent}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar-outline" size={20} color="#3498db" />
+                  <Text style={styles.infoText}>
+                    Ngày kiểm: {new Date().toLocaleDateString("vi-VN")}
+                  </Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Ionicons name="person-outline" size={20} color="#3498db" />
+                  <Text style={styles.infoText}>Người kiểm: Bạn</Text>
+                </View>
+
+                <View style={styles.validationSection}>
+                  {canCreateTodayPhieu() ? (
+                    <View style={styles.validationSuccessRow}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color="#27ae60"
+                      />
+                      <View style={styles.validationTextContainer}>
+                        <Text style={styles.validationTextSuccess}>
+                          Có thể tạo phiếu kiểm kê
+                        </Text>
+                        <Text style={styles.validationSubText}>
+                          Hôm nay chưa có phiếu kiểm kê nào
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.validationErrorRow}>
+                      <Ionicons name="close-circle" size={24} color="#e74c3c" />
+                      <View style={styles.validationTextContainer}>
+                        <Text style={styles.validationTextError}>
+                          Không thể tạo phiếu mới
+                        </Text>
+                        <Text style={styles.validationSubText}>
+                          Hôm nay đã có phiếu kiểm kê rồi
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Warning luôn hiển thị */}
+                <View style={styles.warningSection}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={20}
+                    color="#f39c12"
+                  />
+                  <Text style={styles.warningText}>
+                    Quy định: Mỗi ngày chỉ được tạo 1 phiếu kiểm kê
+                  </Text>
+                </View>
+
+                {canCreateTodayPhieu() ? (
+                  <Text style={styles.confirmText}>
+                    Phiếu kiểm kê sẽ bao gồm tất cả vật tư hiện có trong kho để
+                    bạn thực hiện kiểm kê.
+                  </Text>
+                ) : (
+                  <Text style={styles.blockText}>
+                    Bạn có thể mở phiếu kiểm kê có sẵn để tiếp tục công việc
+                    hoặc đợi đến ngày mai để tạo phiếu mới.
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.modalActions}>
                 <TouchableOpacity
-                  style={styles.confirmButton}
-                  onPress={createPhieuKiemKe}
+                  style={styles.cancelButton}
+                  onPress={() => setShowCreateModal(false)}
                 >
-                  <Text style={styles.confirmButtonText}>
-                    Tạo phiếu hôm nay
+                  <Text style={styles.cancelButtonText}>
+                    {canCreateTodayPhieu() ? "Hủy" : "Đóng"}
                   </Text>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.openExistingButton}
-                  onPress={() => {
-                    const todayPhieu = findTodayPhieu();
-                    if (todayPhieu) {
-                      setShowCreateModal(false);
-                      openPhieuDetail(todayPhieu);
-                    } else {
-                      Alert.alert(
-                        "Thông báo",
-                        "Không tìm thấy phiếu kiểm kê hôm nay"
-                      );
-                    }
-                  }}
-                >
-                  <Text style={styles.openExistingButtonText}>
-                    Mở phiếu có sẵn
-                  </Text>
-                </TouchableOpacity>
-              )}
+
+                {canCreateTodayPhieu() ? (
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={createPhieuKiemKe}
+                  >
+                    <Text style={styles.confirmButtonText}>
+                      Tạo phiếu hôm nay
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.openExistingButton}
+                    onPress={() => {
+                      const todayPhieu = findTodayPhieu();
+                      if (todayPhieu) {
+                        setShowCreateModal(false);
+                        openPhieuDetail(todayPhieu);
+                      } else {
+                        Alert.alert(
+                          "Thông báo",
+                          "Không tìm thấy phiếu kiểm kê hôm nay"
+                        );
+                      }
+                    }}
+                  >
+                    <Text style={styles.openExistingButtonText}>
+                      Mở phiếu có sẵn
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -697,77 +928,209 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 16,
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f2f6",
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "700",
     color: "#2c3e50",
+    letterSpacing: -0.5,
   },
-  headerActions: {
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#7f8c8d",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  headerRight: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  createButton: {
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#3498db",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerIconButtonActive: {
+    backgroundColor: "#3498db",
+  },
+  primaryActionButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#3498db",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 20,
+    shadowColor: "#3498db",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  createButtonText: {
+  primaryActionText: {
     color: "#fff",
     fontWeight: "600",
-    marginLeft: 6,
+    fontSize: 13,
+    marginLeft: 4,
   },
-  todayPhieuButton: {
+  secondaryActionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#d1e7dd",
-    paddingHorizontal: 16,
+    backgroundColor: "#d1f2eb",
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 8,
-    marginLeft: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#27ae60",
   },
-  todayPhieuText: {
-    color: "#155724",
+  secondaryActionText: {
+    color: "#27ae60",
     fontWeight: "600",
-    marginLeft: 6,
+    fontSize: 13,
+    marginLeft: 4,
   },
-  statsContainer: {
+
+  // ✅ Search Panel Styles
+  searchPanel: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f2f6",
+  },
+  searchInputWrapper: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#2c3e50",
+    marginLeft: 8,
+    paddingVertical: 0,
+  },
+  clearInputButton: {
+    padding: 4,
+  },
+  clearAllButton: {
+    backgroundColor: "#fee2e2",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  clearAllText: {
+    fontSize: 12,
+    color: "#dc2626",
+    fontWeight: "600",
+  },
+  searchSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  searchSummaryText: {
+    fontSize: 12,
+    color: "#3498db",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  quickSearchContainer: {
+    marginTop: 8,
+  },
+  quickSearchLabel: {
+    fontSize: 11,
+    color: "#7f8c8d",
+    marginBottom: 6,
+    fontWeight: "600",
+  },
+  quickSearchTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  quickSearchTag: {
+    backgroundColor: "#f1f3f4",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  quickSearchTagText: {
+    fontSize: 11,
+    color: "#5f6368",
+    fontWeight: "500",
+  },
+
+  statsBar: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff",
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 12,
-    padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  statItem: {
+  statChip: {
     flex: 1,
     alignItems: "center",
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
+  statChipNumber: {
+    fontSize: 18,
+    fontWeight: "700",
     color: "#3498db",
   },
-  statLabel: {
-    fontSize: 12,
+  statChipLabel: {
+    fontSize: 10,
     color: "#7f8c8d",
-    marginTop: 4,
+    marginTop: 2,
+    fontWeight: "600",
   },
+  todayQuickAccess: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef3e2",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  todayQuickText: {
+    fontSize: 10,
+    color: "#e67e22",
+    marginLeft: 2,
+    fontWeight: "600",
+  },
+
   listContainer: {
     padding: 20,
     paddingTop: 16,
