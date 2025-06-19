@@ -34,9 +34,22 @@ function getBaoGiaEmailHTML(materialList) {
       <td bgcolor="#fff" style="padding:40px;">
         <h2 style="color:#383e56;">Kính gửi Quý Nhà Cung Cấp,</h2>
         <p>Chúng tôi muốn yêu cầu báo giá cho các vật tư sau:</p>
-        <ul>
-          ${materialList.map(m => `<li>${m.tenvattu}</li>`).join("")}
-        </ul>
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:20px;">
+          <thead>
+            <tr style="background:#f1f1f1;">
+              <th style="text-align:left;">Tên vật tư</th>
+              <th style="text-align:right;">Số lượng</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${materialList.map(m => `
+              <tr>
+                <td>${m.tenvattu}</td>
+                <td style="text-align:right;">${m.soluong || ""}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
         <p>Trân trọng,<br>Công ty KKTL</p>
         <div style="margin-top:40px;text-align:center;">
           <a href="#" style="background-color: #01c8c8; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Gửi Phản Hồi</a>
@@ -55,12 +68,26 @@ function getBaoGiaEmailHTML(materialList) {
 }
 
 const BaoGia = () => {
+    const [materialQuantities, setMaterialQuantities] = useState({});
+
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState([]);
   const [loading, setLoading] = useState(false); // Thêm state loading để quản lý trạng thái tải dữ liệu
 
+  // Hàm để cập nhật materialQuantities khi selectedMaterials thay đổi
+  useEffect(() => {
+    setMaterialQuantities(prev => {
+      const newQuantities = {};
+      selectedMaterials.forEach(id => {
+        newQuantities[id] = prev[id] || "";
+      });
+      return newQuantities;
+    });
+  }, [selectedMaterials]);
+
+  // lay vat tu
   useEffect(() => {
     const fetchMaterials = async () => {
       try {
@@ -76,6 +103,7 @@ const BaoGia = () => {
     fetchMaterials();
   }, []);
 
+  // lay ncc khi chon vat tu
   useEffect(() => {
     const fetchSuppliers = async () => {
       if (selectedMaterials.length === 0) {
@@ -129,6 +157,13 @@ const BaoGia = () => {
       alert("Vui lòng chọn vật tư và chọn ít nhất một nhà cung cấp.");
       return;
     }
+    // Kiểm tra số lượng đã nhập đủ và hợp lệ
+    for (const id of selectedMaterials) {
+      if (!materialQuantities[id] || isNaN(materialQuantities[id]) || Number(materialQuantities[id]) <= 0) {
+        alert("Vui lòng nhập số lượng hợp lệ cho tất cả vật tư.");
+        return;
+      }
+    }
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -136,19 +171,23 @@ const BaoGia = () => {
         suppliers
           .filter((supplier) => selectedSuppliers.includes(supplier.idncc))
           .map(async (supplier) => {
-            // Lấy vật tư mà nhà cung cấp này cung cấp (giao giữa selectedMaterials và vật tư của supplier)
             const res = await axios.get(
               `http://localhost:3000/api/vattu/nhacungcap/${supplier.idncc}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             const supplierMaterialIds = res.data.map((m) => m.idvattu);
-            // Lọc ra vật tư đã chọn mà nhà cung cấp này có
-            const materialForSupplier = materials.filter(
-              (m) =>
-                selectedMaterials.includes(m.idvattu) &&
-                supplierMaterialIds.includes(m.idvattu)
-            );
-            if (materialForSupplier.length === 0) return null; // Không gửi nếu không có vật tư phù hợp
+            // Lọc ra vật tư đã chọn mà nhà cung cấp này có, kèm số lượng
+            const materialForSupplier = materials
+              .filter(
+                (m) =>
+                  selectedMaterials.includes(m.idvattu) &&
+                  supplierMaterialIds.includes(m.idvattu)
+              )
+              .map(m => ({
+                ...m,
+                soluong: materialQuantities[m.idvattu]
+              }));
+            if (materialForSupplier.length === 0) return null;
 
             const emailHtml = getBaoGiaEmailHTML(materialForSupplier);
 
@@ -208,6 +247,48 @@ const BaoGia = () => {
         )}
         sx={{ width: "100%" }}
       />
+
+      {/* Bảng nhập số lượng cho từng vật tư đã chọn */}
+      {selectedMaterials.length > 0 && (
+        <Box sx={{ marginTop: 3, marginBottom: 3 }}>
+          <h3>Nhập số lượng cần báo giá</h3>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Tên vật tư</TableCell>
+                <TableCell>Số lượng</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {selectedMaterials.map(id => {
+                const material = materials.find(m => m.idvattu === id);
+                return (
+                  <TableRow key={id}>
+                    <TableCell>{material ? material.tenvattu : id}</TableCell>
+                    <TableCell>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={materialQuantities[id] || ""}
+                        onChange={e => {
+                          const value = e.target.value;
+                          setMaterialQuantities(q => ({
+                            ...q,
+                            [id]: value
+                          }));
+                        }}
+                        inputProps={{ min: 1 }}
+                        required
+                        sx={{ width: 100 }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+      )}
 
       {/* Danh sách nhà cung cấp */}
       <Box sx={{ marginBottom: "20px", marginTop: "30px" }}>
