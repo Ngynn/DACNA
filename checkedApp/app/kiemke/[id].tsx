@@ -16,6 +16,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import API_URL from "@/config/api";
+import AdvancedFilters from "@/components/AdvancedFiltersProps";
 
 type TonKhoItem = {
   idvattu: number;
@@ -30,7 +31,13 @@ type TonKhoItem = {
   checked: boolean;
 };
 
+// ✅ Simplified Tab Types - chỉ giữ những tab chính
 type TabType = "all" | "checked" | "unchecked" | "haohut";
+
+// ✅ Enhanced Filter Types cho bộ lọc nâng cao
+type PriorityFilter = "all" | "critical" | "expired" | "nearExpiry" | "normal";
+type CategoryFilter = "all" | "medicine" | "equipment" | "consumable" | "other";
+type StockFilter = "all" | "lowStock" | "highStock" | "outOfStock";
 
 export default function KiemKeDetail() {
   const router = useRouter();
@@ -40,6 +47,10 @@ export default function KiemKeDetail() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -141,35 +152,174 @@ export default function KiemKeDetail() {
     fetchTonKhoAndKiemKe();
   };
 
+  // ✅ Enhanced getFilteredData function dựa trên database thực tế
   const getFilteredData = () => {
-    let filtered = [];
+    let filtered = [...tonkhoData];
 
+    // 1. Lọc theo tab chính (status)
     switch (activeTab) {
       case "checked":
-        filtered = tonkhoData.filter((item) => item.checked);
+        filtered = filtered.filter((item) => item.checked);
         break;
       case "unchecked":
-        filtered = tonkhoData.filter((item) => !item.checked);
+        filtered = filtered.filter((item) => !item.checked);
         break;
       case "haohut":
-        filtered = tonkhoData.filter(
+        filtered = filtered.filter(
           (item) => item.checked && (item.soluonghaohut_current || 0) > 0
         );
         break;
       default:
-        filtered = [...tonkhoData];
+        // "all" - không lọc gì
+        break;
     }
 
+    // 2. Lọc theo độ ưu tiên (Priority Filter)
+    if (priorityFilter !== "all") {
+      switch (priorityFilter) {
+        case "critical":
+          // Tồn kho thấp (≤ 5 cho vật tư y tế)
+          filtered = filtered.filter((item) => {
+            const tonkho = item.tonkhothucte_current || item.tonkhohientai;
+            return tonkho <= 5;
+          });
+          break;
+        case "expired":
+          // Đã hết hạn
+          filtered = filtered.filter((item) => {
+            if (!item.ngayhethan) return false;
+            const today = new Date();
+            const expiryDate = new Date(item.ngayhethan);
+            return expiryDate < today;
+          });
+          break;
+        case "nearExpiry":
+          // Sắp hết hạn trong 60 ngày (vì vật tư y tế cần thời gian dự trữ)
+          filtered = filtered.filter((item) => {
+            if (!item.ngayhethan) return false;
+            const today = new Date();
+            const expiryDate = new Date(item.ngayhethan);
+            const diffDays = Math.ceil(
+              (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            return diffDays >= 0 && diffDays <= 60;
+          });
+          break;
+        case "normal":
+          // Còn hạn lâu và tồn kho ổn định
+          filtered = filtered.filter((item) => {
+            const today = new Date();
+            const expiryDate = item.ngayhethan
+              ? new Date(item.ngayhethan)
+              : null;
+            const diffDays = expiryDate
+              ? Math.ceil(
+                  (expiryDate.getTime() - today.getTime()) /
+                    (1000 * 60 * 60 * 24)
+                )
+              : 999;
+            const tonkho = item.tonkhothucte_current || item.tonkhohientai;
+            return diffDays > 60 && tonkho > 5;
+          });
+          break;
+      }
+    }
+
+    // 3. Lọc theo danh mục (Category Filter) - dựa vào category ID
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter((item) => {
+        // Giả sử API trả về thêm field category hoặc danhmuc_id
+        const categoryId =
+          (item as any).danhmuc_id || getCategoryFromName(item.tenvattu);
+
+        switch (categoryFilter) {
+          case "consumable": // Vật tư tiêu hao - category 1
+            return categoryId === 1;
+          case "equipment": // Thiết bị y tế - category 2
+            return categoryId === 2;
+          case "medicine": // Hóa chất/Sinh phẩm - category 3
+            return categoryId === 3;
+          case "other":
+            return ![1, 2, 3].includes(categoryId);
+          default:
+            return true;
+        }
+      });
+    }
+
+    // 4. Lọc theo tồn kho (Stock Filter) - phù hợp với vật tư y tế
+    if (stockFilter !== "all") {
+      filtered = filtered.filter((item) => {
+        const tonkho = item.tonkhothucte_current || item.tonkhohientai;
+
+        switch (stockFilter) {
+          case "outOfStock":
+            return tonkho <= 0;
+          case "lowStock":
+            // Tồn kho thấp cho vật tư y tế (1-10)
+            return tonkho > 0 && tonkho <= 10;
+          case "highStock":
+            // Tồn kho cao (>50)
+            return tonkho > 50;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // 5. Lọc theo tìm kiếm
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (item) =>
           item.tenvattu.toLowerCase().includes(query) ||
-          String(item.idvattu).includes(query)
+          String(item.idvattu).includes(query) ||
+          ((item as any).donvi || "").toLowerCase().includes(query)
       );
     }
 
     return filtered;
+  };
+
+  // ✅ Helper function để xác định category từ tên (fallback)
+  const getCategoryFromName = (tenvattu: string): number => {
+    const name = tenvattu.toLowerCase();
+
+    // Vật tư tiêu hao (category 1)
+    if (
+      name.includes("kim") ||
+      name.includes("găng") ||
+      name.includes("băng") ||
+      name.includes("khẩu trang") ||
+      name.includes("bông") ||
+      name.includes("tấm lót")
+    ) {
+      return 1;
+    }
+
+    // Thiết bị y tế (category 2)
+    if (
+      name.includes("máy") ||
+      name.includes("ống nghe") ||
+      name.includes("kéo") ||
+      name.includes("dao") ||
+      name.includes("kẹp") ||
+      name.includes("đèn")
+    ) {
+      return 2;
+    }
+
+    // Hóa chất/Sinh phẩm (category 3)
+    if (
+      name.includes("hóa chất") ||
+      name.includes("test") ||
+      name.includes("dung dịch") ||
+      name.includes("sinh phẩm")
+    ) {
+      return 3;
+    }
+
+    return 0; // other
   };
 
   const handleOpenModal = (item: TonKhoItem) => {
@@ -414,6 +564,135 @@ export default function KiemKeDetail() {
     );
   };
 
+  // ✅ Simplified Tab Container - chỉ 4 tab chính
+  const renderSimplifiedTabs = () => {
+    const tabs = [
+      { id: "all", name: "Tất cả", icon: "grid-outline", color: "#3498db" },
+      {
+        id: "unchecked",
+        name: "Chưa kiểm",
+        icon: "ellipse-outline",
+        color: "#95a5a6",
+      },
+      {
+        id: "checked",
+        name: "Đã kiểm",
+        icon: "checkmark-circle",
+        color: "#27ae60",
+      },
+      {
+        id: "haohut",
+        name: "Có hao hụt",
+        icon: "alert-circle",
+        color: "#e74c3c",
+      },
+    ];
+
+    return (
+      <View style={styles.simplifiedTabContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.tabRow}>
+            {tabs.map((tab) => {
+              const count = getTabCount(tab.id);
+              const isActive = activeTab === tab.id;
+
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[
+                    styles.simplifiedTab,
+                    isActive && { backgroundColor: tab.color },
+                  ]}
+                  onPress={() => setActiveTab(tab.id as TabType)}
+                >
+                  <Ionicons
+                    name={tab.icon as any}
+                    size={18}
+                    color={isActive ? "#fff" : tab.color}
+                  />
+                  <Text
+                    style={[
+                      styles.simplifiedTabText,
+                      isActive && { color: "#fff" },
+                    ]}
+                  >
+                    {tab.name}
+                  </Text>
+                  {count > 0 && (
+                    <View
+                      style={[
+                        styles.simplifiedTabBadge,
+                        isActive
+                          ? styles.activeSimplifiedBadge
+                          : { backgroundColor: tab.color },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.simplifiedTabBadgeText,
+                          isActive && { color: tab.color },
+                        ]}
+                      >
+                        {count}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+
+        {/* ✅ Advanced Filters với active filters count */}
+        <AdvancedFilters
+          priorityFilter={priorityFilter}
+          setPriorityFilter={setPriorityFilter}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          stockFilter={stockFilter}
+          setStockFilter={setStockFilter}
+          isVisible={showAdvancedFilters}
+          onToggle={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          activeFiltersCount={getActiveFiltersCount()}
+        />
+      </View>
+    );
+  };
+
+  // ✅ Helper function to count active filters
+  const getActiveFiltersCount = (): number => {
+    let count = 0;
+    if (priorityFilter !== "all") count++;
+    if (categoryFilter !== "all") count++;
+    if (stockFilter !== "all") count++;
+    return count;
+  };
+
+  // ✅ Update getTabCount helper
+  const getTabCount = (tabId: string): number => {
+    // Tạm thời set activeTab để đếm
+    let count = 0;
+
+    switch (tabId) {
+      case "all":
+        count = tonkhoData.length;
+        break;
+      case "checked":
+        count = tonkhoData.filter((item) => item.checked).length;
+        break;
+      case "unchecked":
+        count = tonkhoData.filter((item) => !item.checked).length;
+        break;
+      case "haohut":
+        count = tonkhoData.filter(
+          (item) => item.checked && (item.soluonghaohut_current || 0) > 0
+        ).length;
+        break;
+    }
+
+    return count;
+  };
+
   const filteredData = getFilteredData();
   const uncheckedCount = tonkhoData.filter((item) => !item.checked).length;
 
@@ -456,44 +735,22 @@ export default function KiemKeDetail() {
         </View>
       )}
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {(["all", "unchecked", "checked", "haohut"] as TabType[]).map(
-            (tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tab,
-                  activeTab === tab ? styles.activeTab : styles.inactiveTab,
-                ]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab
-                      ? styles.activeTabText
-                      : styles.inactiveTabText,
-                  ]}
-                >
-                  {tab === "all" && "Tất cả"}
-                  {tab === "unchecked" && "Chưa kiểm"}
-                  {tab === "checked" && "Đã kiểm"}
-                  {tab === "haohut" && "Có hao hụt"}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
-        </ScrollView>
-      </View>
+      {/* ✅ Simplified Tabs */}
+      {renderSimplifiedTabs()}
 
-      {/* Stats */}
+      {/* Stats với filter info */}
       <View style={styles.statsContainer}>
-        <Text style={styles.statsText}>
-          Hiển thị:{" "}
-          <Text style={styles.statsNumber}>{filteredData.length}</Text> vật tư
-        </Text>
+        <View style={styles.resultsInfo}>
+          <Text style={styles.statsText}>
+            Hiển thị:{" "}
+            <Text style={styles.statsNumber}>{filteredData.length}</Text> vật tư
+          </Text>
+          {getActiveFiltersCount() > 0 && (
+            <Text style={styles.filterInfo}>
+              Đang áp dụng {getActiveFiltersCount()} bộ lọc
+            </Text>
+          )}
+        </View>
         {uncheckedCount > 0 && (
           <Text style={styles.uncheckedInfo}>Chưa kiểm: {uncheckedCount}</Text>
         )}
@@ -1129,5 +1386,94 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderLeftWidth: 3,
     borderLeftColor: "#ef4444",
+  },
+  medicalTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  medicalTabText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 6,
+    color: "#2c3e50",
+  },
+  tabBadge: {
+    backgroundColor: "#e74c3c",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+    minWidth: 18,
+  },
+  activeBadge: {
+    backgroundColor: "#fff",
+  },
+  tabBadgeText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  tabRow: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  simplifiedTabContainer: {
+    backgroundColor: "#fff",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ecf0f1",
+  },
+  simplifiedTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    minHeight: 44,
+  },
+  simplifiedTabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 8,
+    color: "#2c3e50",
+  },
+  simplifiedTabBadge: {
+    backgroundColor: "#e74c3c",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginLeft: 8,
+    minWidth: 24,
+  },
+  activeSimplifiedBadge: {
+    backgroundColor: "#fff",
+  },
+  simplifiedTabBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  filterInfo: {
+    fontSize: 12,
+    color: "#3498db",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  resultsInfo: {
+    flex: 1,
   },
 });

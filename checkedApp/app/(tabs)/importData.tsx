@@ -19,9 +19,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import API_URL from "../../config/api";
 
+// ✅ Giữ nguyên ImportItem - chỉ lưu idncc
 type ImportItem = {
   id: string;
-  idncc: string;
+  idncc: string; // Chỉ lưu ID thôi
   tongtien: number;
   tongtienthucte: number;
   ngaydukiennhapkho: string;
@@ -40,6 +41,18 @@ type VatTu = {
   donvi: string;
 };
 
+// ✅ Thêm type cho nhà cung cấp
+type NhaCungCap = {
+  idncc: number;
+  tenncc: string;
+  sodienthoai: string;
+  email: string;
+  diachi: string;
+  stk: string;
+  mst: string;
+  website?: string;
+};
+
 export default function ImportData() {
   const [importData, setImportData] = useState<ImportItem[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -53,6 +66,10 @@ export default function ImportData() {
   const [loading, setLoading] = useState(false);
   const [showVattuPicker, setShowVattuPicker] = useState(false);
 
+  const [nhaCungCapList, setNhaCungCapList] = useState<NhaCungCap[]>([]);
+  const [showNccPicker, setShowNccPicker] = useState(false);
+  const [loadingNcc, setLoadingNcc] = useState(false);
+
   const [formData, setFormData] = useState({
     idncc: "",
     ngaydukiennhapkho: "",
@@ -64,8 +81,13 @@ export default function ImportData() {
     dongianhap: "",
   });
 
+  // ✅ Thêm state cho tìm kiếm
+  const [vattuSearchQuery, setVattuSearchQuery] = useState("");
+  const [nccSearchQuery, setNccSearchQuery] = useState("");
+
   useEffect(() => {
     fetchVattuList();
+    fetchNhaCungCapList();
   }, []);
 
   const fetchVattuList = async () => {
@@ -101,6 +123,55 @@ export default function ImportData() {
     } finally {
       setLoading(false);
     }
+  };
+
+  //  Function để fetch danh sách nhà cung cấp
+  const fetchNhaCungCapList = async () => {
+    try {
+      setLoadingNcc(true);
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Lỗi", "Phiên làm việc hết hạn, vui lòng đăng nhập lại");
+        return;
+      }
+
+      console.log("Fetching nhà cung cấp list...");
+      const response = await axios.get(`${API_URL}/api/nhacungcap`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("✅ Nhà cung cấp list response:", {
+        status: response.status,
+        dataLength: response.data.length,
+        sampleData: response.data.slice(0, 3),
+      });
+
+      setNhaCungCapList(response.data);
+    } catch (error) {
+      console.error("Error fetching nhà cung cấp list:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+      }
+      Alert.alert("Lỗi", "Không thể tải danh sách nhà cung cấp");
+    } finally {
+      setLoadingNcc(false);
+    }
+  };
+
+  // ✅ Helper function để lấy tên nhà cung cấp từ ID
+  const getNhaCungCapName = (idncc: string): string => {
+    const ncc = nhaCungCapList.find((item) => item.idncc.toString() === idncc);
+    return ncc ? ncc.tenncc : `NCC ID: ${idncc}`;
+  };
+
+  // ✅ Helper function để lấy thông tin nhà cung cấp từ ID
+  const getNhaCungCapInfo = (idncc: string): NhaCungCap | null => {
+    return (
+      nhaCungCapList.find((item) => item.idncc.toString() === idncc) || null
+    );
   };
 
   const calculateTotalPrice = (soluong: string, dongia: string): number => {
@@ -146,21 +217,22 @@ export default function ImportData() {
       !formData.vattu ||
       !formData.idvattu ||
       !formData.soluong ||
-      !formData.dongianhap
+      !formData.dongianhap ||
+      !formData.idncc // ✅ Validation cho nhà cung cấp
     ) {
       Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
 
-    // ✅ Tính toán tự động
     const tongtien = calculateTotalPrice(formData.soluong, formData.dongianhap);
     const tongtienthucte = formData.soluongthucte
       ? calculateActualTotalPrice(formData.soluongthucte, formData.dongianhap)
-      : tongtien; // Nếu không có số lượng thực tế, dùng số lượng dự kiến
+      : tongtien;
 
+    // ✅ ImportItem chỉ lưu idncc, không lưu tên
     const newItem: ImportItem = {
       id: editingItem ? editingItem.id : Date.now().toString(),
-      idncc: formData.idncc || generatePhieuNhapId(), // Auto-generate nếu rỗng
+      idncc: formData.idncc, // Chỉ lưu ID
       tongtien,
       tongtienthucte,
       ngaydukiennhapkho: formData.ngaydukiennhapkho,
@@ -220,6 +292,16 @@ export default function ImportData() {
       idvattu: vattu.idvattu.toString(),
     }));
     setShowVattuPicker(false);
+  };
+
+  // ✅ Handle chọn nhà cung cấp từ picker - chỉ lưu ID
+  const handleNccSelect = (ncc: NhaCungCap) => {
+    console.log("🔍 Selected nhà cung cấp:", ncc);
+    setFormData((prev) => ({
+      ...prev,
+      idncc: ncc.idncc.toString(), // Chỉ lưu ID
+    }));
+    setShowNccPicker(false);
   };
 
   // ✅ Handle date change với validation
@@ -321,108 +403,260 @@ export default function ImportData() {
     }
   };
 
-  const renderVattuItem = ({ item }: { item: VatTu }) => (
-    <TouchableOpacity
-      style={styles.vattuPickerItem}
-      onPress={() => handleVattuSelect(item)}
-    >
-      <View style={styles.vattuItemContent}>
-        <Text style={styles.vattuItemName}>{item.tenvattu}</Text>
-        <Text style={styles.vattuItemInfo}>
-          ID: {item.idvattu} • {item.tendanhmuc}
+  const renderVattuItem = ({ item }: { item: VatTu }) => {
+    const highlightText = (text: string, query: string) => {
+      if (!query.trim()) return text;
+
+      const regex = new RegExp(`(${query})`, "gi");
+      const parts = text.split(regex);
+
+      return (
+        <Text>
+          {parts.map((part, index) =>
+            regex.test(part) ? (
+              <Text key={index} style={styles.highlightText}>
+                {part}
+              </Text>
+            ) : (
+              <Text key={index}>{part}</Text>
+            )
+          )}
         </Text>
-        <Text style={styles.vattuItemUnit}>
-          Đơn vị: {item.donvi || "Chưa xác định"}
+      );
+    };
+
+    return (
+      <TouchableOpacity
+        style={styles.vattuPickerItem}
+        onPress={() => handleVattuSelect(item)}
+      >
+        <View style={styles.vattuItemContent}>
+          <Text style={styles.vattuItemName}>
+            {highlightText(item.tenvattu, vattuSearchQuery)}
+          </Text>
+          <Text style={styles.vattuItemInfo}>
+            ID: {highlightText(item.idvattu.toString(), vattuSearchQuery)} •{" "}
+            {highlightText(item.tendanhmuc, vattuSearchQuery)}
+          </Text>
+          <Text style={styles.vattuItemUnit}>
+            Đơn vị:{" "}
+            {highlightText(item.donvi || "Chưa xác định", vattuSearchQuery)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderNccItem = ({ item }: { item: NhaCungCap }) => {
+    const highlightText = (text: string, query: string) => {
+      if (!query.trim()) return text;
+
+      const regex = new RegExp(`(${query})`, "gi");
+      const parts = text.split(regex);
+
+      return (
+        <Text>
+          {parts.map((part, index) =>
+            regex.test(part) ? (
+              <Text key={index} style={styles.highlightText}>
+                {part}
+              </Text>
+            ) : (
+              <Text key={index}>{part}</Text>
+            )
+          )}
         </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      );
+    };
 
-  const renderImportItem = ({ item }: { item: ImportItem }) => (
-    <View style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <Text style={styles.itemTitle}>{item.vattu}</Text>
-        <View style={styles.itemBadge}>
-          <Text style={styles.itemBadgeText}>{item.idncc}</Text>
-        </View>
-        <View style={styles.itemActions}>
-          <TouchableOpacity
-            onPress={() => handleEditItem(item)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="create-outline" size={20} color="#3498db" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleDeleteItem(item.id)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.itemDetails}>
-        <View style={styles.itemRow}>
-          <Text style={styles.itemLabel}>ID vật tư:</Text>
-          <Text style={styles.itemValue}>{item.idvattu}</Text>
-        </View>
-
-        <View style={styles.itemRow}>
-          <Text style={styles.itemLabel}>Số lượng (DK/TT):</Text>
-          <Text style={styles.itemValue}>
-            {item.soluong}
-            {item.soluongthucte ? ` / ${item.soluongthucte}` : ""}
+    return (
+      <TouchableOpacity
+        style={styles.nccPickerItem}
+        onPress={() => handleNccSelect(item)}
+      >
+        <View style={styles.nccItemContent}>
+          <Text style={styles.nccItemName}>
+            {highlightText(item.tenncc, nccSearchQuery)}
+          </Text>
+          <Text style={styles.nccItemInfo}>
+            ID: {highlightText(item.idncc.toString(), nccSearchQuery)} • MST:{" "}
+            {highlightText(item.mst, nccSearchQuery)}
+          </Text>
+          <Text style={styles.nccItemDetail}>
+            📞 {highlightText(item.sodienthoai, nccSearchQuery)} • 📧{" "}
+            {highlightText(item.email, nccSearchQuery)}
+          </Text>
+          <Text style={styles.nccItemAddress}>
+            📍 {highlightText(item.diachi, nccSearchQuery)}
           </Text>
         </View>
+      </TouchableOpacity>
+    );
+  };
 
-        <View style={styles.itemRow}>
-          <Text style={styles.itemLabel}>Đơn giá:</Text>
-          <Text style={styles.itemValue}>
-            {item.dongianhap
-              ? `${parseInt(item.dongianhap).toLocaleString("vi-VN")} VNĐ`
-              : "Chưa nhập"}
-          </Text>
+  // Cập nhật renderImportItem để hiển thị tên NCC từ lookup
+  const renderImportItem = ({ item }: { item: ImportItem }) => {
+    const nccInfo = getNhaCungCapInfo(item.idncc);
+    const nccDisplayName = getNhaCungCapName(item.idncc);
+
+    return (
+      <View style={styles.itemCard}>
+        <View style={styles.itemHeader}>
+          <Text style={styles.itemTitle}>{item.vattu}</Text>
+
+          <View style={styles.itemActions}>
+            <TouchableOpacity
+              onPress={() => handleEditItem(item)}
+              style={styles.actionButton}
+            >
+              <Ionicons name="create-outline" size={20} color="#3498db" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleDeleteItem(item.id)}
+              style={styles.actionButton}
+            >
+              <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+            </TouchableOpacity>
+          </View>
         </View>
+        {/* <View style={styles.itemBadge}>
+          <Text style={styles.itemBadgeText}>{nccDisplayName}</Text>
+        </View> */}
 
-        <View style={styles.itemRow}>
-          <Text style={styles.itemLabel}>Tổng tiền (DK):</Text>
-          <Text
-            style={[styles.itemValue, { color: "#27ae60", fontWeight: "bold" }]}
-          >
-            {item.tongtien.toLocaleString("vi-VN")} VNĐ
-          </Text>
-        </View>
-
-        {item.tongtienthucte !== item.tongtien && (
+        <View style={styles.itemDetails}>
+          {/* ✅ Hiển thị thông tin nhà cung cấp từ lookup */}
           <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Tổng tiền (TT):</Text>
+            <Text style={styles.itemLabel}>Nhà cung cấp:</Text>
+            <Text style={styles.itemValue}>{nccDisplayName}</Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Thông tin NCC:</Text>
+            <Text style={styles.itemValue}>
+              {nccInfo?.diachi || "Chưa nhập"} •{" "}
+            </Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Số điện thoại:</Text>
+            <Text style={styles.itemValue}>
+              {nccInfo?.sodienthoai || "Chưa nhập"}
+            </Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Email:</Text>
+            <Text style={styles.itemValue}>
+              {nccInfo?.email || "Chưa nhập"}
+            </Text>
+          </View>
+
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>ID vật tư:</Text>
+            <Text style={styles.itemValue}>{item.idvattu}</Text>
+          </View>
+
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Số lượng (DK/TT):</Text>
+            <Text style={styles.itemValue}>
+              {item.soluong}
+              {item.soluongthucte ? ` / ${item.soluongthucte}` : ""}
+            </Text>
+          </View>
+
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Đơn giá:</Text>
+            <Text style={styles.itemValue}>
+              {item.dongianhap
+                ? `${parseInt(item.dongianhap).toLocaleString("vi-VN")} VNĐ`
+                : "Chưa nhập"}
+            </Text>
+          </View>
+
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Tổng tiền (DK):</Text>
             <Text
               style={[
                 styles.itemValue,
-                { color: "#e74c3c", fontWeight: "bold" },
+                { color: "#27ae60", fontWeight: "bold" },
               ]}
             >
-              {item.tongtienthucte.toLocaleString("vi-VN")} VNĐ
+              {item.tongtien.toLocaleString("vi-VN")} VNĐ
             </Text>
           </View>
-        )}
 
-        <View style={styles.itemRow}>
-          <Text style={styles.itemLabel}>Ngày dự kiến:</Text>
-          <Text style={styles.itemValue}>
-            {item.ngaydukiennhapkho || "Chưa nhập"}
-          </Text>
-        </View>
+          {item.tongtienthucte !== item.tongtien && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Tổng tiền (TT):</Text>
+              <Text
+                style={[
+                  styles.itemValue,
+                  { color: "#e74c3c", fontWeight: "bold" },
+                ]}
+              >
+                {item.tongtienthucte.toLocaleString("vi-VN")} VNĐ
+              </Text>
+            </View>
+          )}
 
-        <View style={styles.itemRow}>
-          <Text style={styles.itemLabel}>Ngày thực tế:</Text>
-          <Text style={styles.itemValue}>
-            {item.ngaythuctenhapkho || "Chưa nhập"}
-          </Text>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Ngày dự kiến:</Text>
+            <Text style={styles.itemValue}>
+              {item.ngaydukiennhapkho || "Chưa nhập"}
+            </Text>
+          </View>
+
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Ngày thực tế:</Text>
+            <Text style={styles.itemValue}>
+              {item.ngaythuctenhapkho || "Chưa nhập"}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
+
+  // ✅ Function lọc vật tư theo tìm kiếm
+  const getFilteredVattuList = (): VatTu[] => {
+    if (!vattuSearchQuery.trim()) {
+      return vattuList;
+    }
+
+    const query = vattuSearchQuery.toLowerCase();
+    return vattuList.filter(
+      (item) =>
+        item.tenvattu.toLowerCase().includes(query) ||
+        item.tendanhmuc.toLowerCase().includes(query) ||
+        item.idvattu.toString().includes(query) ||
+        (item.donvi || "").toLowerCase().includes(query)
+    );
+  };
+
+  // ✅ Function lọc nhà cung cấp theo tìm kiếm
+  const getFilteredNccList = (): NhaCungCap[] => {
+    if (!nccSearchQuery.trim()) {
+      return nhaCungCapList;
+    }
+
+    const query = nccSearchQuery.toLowerCase();
+    return nhaCungCapList.filter(
+      (item) =>
+        item.tenncc.toLowerCase().includes(query) ||
+        item.idncc.toString().includes(query) ||
+        item.email.toLowerCase().includes(query) ||
+        item.sodienthoai.includes(query) ||
+        item.diachi.toLowerCase().includes(query) ||
+        item.mst.toLowerCase().includes(query)
+    );
+  };
+
+  const handleVattuPickerClose = () => {
+    setShowVattuPicker(false);
+    setVattuSearchQuery("");
+  };
+
+  const handleNccPickerClose = () => {
+    setShowNccPicker(false);
+    setNccSearchQuery("");
+  };
 
   return (
     <View style={styles.container}>
@@ -512,6 +746,37 @@ export default function ImportData() {
             style={styles.formContainer}
             showsVerticalScrollIndicator={false}
           >
+            {/* ✅ Nhà cung cấp selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Chọn nhà cung cấp *</Text>
+              <TouchableOpacity
+                style={styles.nccSelector}
+                onPress={() => setShowNccPicker(true)}
+              >
+                <Text
+                  style={
+                    formData.idncc
+                      ? styles.nccSelectedText
+                      : styles.nccPlaceholderText
+                  }
+                >
+                  {formData.idncc
+                    ? getNhaCungCapName(formData.idncc)
+                    : "Chọn nhà cung cấp từ danh sách"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#7f8c8d" />
+              </TouchableOpacity>
+              {formData.idncc && (
+                <View style={styles.selectedNccInfo}>
+                  <Text style={styles.selectedNccText}>
+                    Đã chọn: {getNhaCungCapName(formData.idncc)} (ID:{" "}
+                    {formData.idncc})
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* ✅ Vật tư selector (existing) */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Chọn vật tư *</Text>
               <TouchableOpacity
@@ -645,7 +910,7 @@ export default function ImportData() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowVattuPicker(false)}>
+            <TouchableOpacity onPress={handleVattuPickerClose}>
               <Ionicons name="close" size={24} color="#7f8c8d" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Chọn vật tư</Text>
@@ -658,6 +923,42 @@ export default function ImportData() {
             </TouchableOpacity>
           </View>
 
+          {/* ✅ Search Bar cho vật tư */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color="#7f8c8d" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm vật tư theo tên, danh mục, ID..."
+                value={vattuSearchQuery}
+                onChangeText={setVattuSearchQuery}
+                placeholderTextColor="#bdc3c7"
+                clearButtonMode="while-editing"
+              />
+              {vattuSearchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setVattuSearchQuery("")}
+                  style={styles.clearSearchButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="#95a5a6" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ✅ Hiển thị số kết quả tìm kiếm */}
+            <View style={styles.searchResultInfo}>
+              <Text style={styles.searchResultText}>
+                {getFilteredVattuList().length} / {vattuList.length} vật tư
+                {vattuSearchQuery.trim() && (
+                  <Text style={styles.searchQueryText}>
+                    {" "}
+                    • "{vattuSearchQuery}"
+                  </Text>
+                )}
+              </Text>
+            </View>
+          </View>
+
           {loading ? (
             <View style={styles.loadingContainer}>
               <Text style={styles.loadingText}>
@@ -666,11 +967,132 @@ export default function ImportData() {
             </View>
           ) : (
             <FlatList
-              data={vattuList}
+              data={getFilteredVattuList()}
               renderItem={renderVattuItem}
               keyExtractor={(item) => item.idvattu.toString()}
               contentContainerStyle={styles.vattuListContainer}
               showsVerticalScrollIndicator={false}
+              ListEmptyComponent={() => (
+                <View style={styles.emptySearchContainer}>
+                  <Ionicons name="search" size={50} color="#bdc3c7" />
+                  <Text style={styles.emptySearchTitle}>
+                    Không tìm thấy vật tư
+                  </Text>
+                  <Text style={styles.emptySearchText}>
+                    Thử tìm kiếm với từ khóa khác hoặc kiểm tra lại chính tả
+                  </Text>
+                  {vattuSearchQuery.trim() && (
+                    <TouchableOpacity
+                      style={styles.clearSearchResultButton}
+                      onPress={() => setVattuSearchQuery("")}
+                    >
+                      <Text style={styles.clearSearchResultText}>
+                        Xóa tìm kiếm
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
+
+      {/* ✅ Nhà cung cấp Picker Modal */}
+      <Modal
+        visible={showNccPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={handleNccPickerClose}>
+              <Ionicons name="close" size={24} color="#7f8c8d" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Chọn nhà cung cấp</Text>
+            <TouchableOpacity
+              onPress={fetchNhaCungCapList}
+              disabled={loadingNcc}
+            >
+              <Ionicons
+                name="refresh"
+                size={24}
+                color={loadingNcc ? "#bdc3c7" : "#3498db"}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* ✅ Search Bar cho nhà cung cấp */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color="#7f8c8d" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm NCC theo tên, email, SĐT, địa chỉ, MST..."
+                value={nccSearchQuery}
+                onChangeText={setNccSearchQuery}
+                placeholderTextColor="#bdc3c7"
+                clearButtonMode="while-editing"
+              />
+              {nccSearchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setNccSearchQuery("")}
+                  style={styles.clearSearchButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="#95a5a6" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ✅ Hiển thị số kết quả tìm kiếm */}
+            <View style={styles.searchResultInfo}>
+              <Text style={styles.searchResultText}>
+                {getFilteredNccList().length} / {nhaCungCapList.length} nhà cung
+                cấp
+                {nccSearchQuery.trim() && (
+                  <Text style={styles.searchQueryText}>
+                    {" "}
+                    • "{nccSearchQuery}"
+                  </Text>
+                )}
+              </Text>
+            </View>
+          </View>
+
+          {loadingNcc ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>
+                Đang tải danh sách nhà cung cấp...
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={getFilteredNccList()}
+              renderItem={renderNccItem}
+              keyExtractor={(item) => item.idncc.toString()}
+              contentContainerStyle={styles.nccListContainer}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={() => (
+                <View style={styles.emptySearchContainer}>
+                  <Ionicons name="business" size={50} color="#bdc3c7" />
+                  <Text style={styles.emptySearchTitle}>
+                    Không tìm thấy nhà cung cấp
+                  </Text>
+                  <Text style={styles.emptySearchText}>
+                    Thử tìm kiếm với từ khóa khác hoặc kiểm tra lại chính tả
+                  </Text>
+                  {nccSearchQuery.trim() && (
+                    <TouchableOpacity
+                      style={styles.clearSearchResultButton}
+                      onPress={() => setNccSearchQuery("")}
+                    >
+                      <Text style={styles.clearSearchResultText}>
+                        Xóa tìm kiếm
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             />
           )}
         </View>
@@ -915,7 +1337,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  // ✅ New styles for vật tư picker
   vattuSelector: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -991,5 +1412,170 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#7f8c8d",
     textAlign: "center",
+  },
+
+  nccSelector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+  },
+  nccSelectedText: {
+    fontSize: 16,
+    color: "#2c3e50",
+    flex: 1,
+  },
+  nccPlaceholderText: {
+    fontSize: 16,
+    color: "#bdc3c7",
+    flex: 1,
+  },
+  selectedNccInfo: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 6,
+  },
+  selectedNccText: {
+    fontSize: 14,
+    color: "#1565c0",
+    fontWeight: "500",
+  },
+  nccListContainer: {
+    padding: 16,
+  },
+  nccPickerItem: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginBottom: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#ecf0f1",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nccItemContent: {
+    gap: 6,
+  },
+  nccItemName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2c3e50",
+  },
+  nccItemInfo: {
+    fontSize: 14,
+    color: "#7f8c8d",
+    fontWeight: "500",
+  },
+  nccItemDetail: {
+    fontSize: 13,
+    color: "#95a5a6",
+    fontStyle: "italic",
+  },
+  nccItemAddress: {
+    fontSize: 12,
+    color: "#95a5a6",
+    fontStyle: "italic",
+  },
+  itemSubValue: {
+    fontSize: 13,
+    color: "#7f8c8d",
+    fontStyle: "italic",
+    marginLeft: 4,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f8f9fa",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ecf0f1",
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#2c3e50",
+    marginLeft: 8,
+    marginRight: 8,
+  },
+  clearSearchButton: {
+    padding: 4,
+  },
+  searchResultInfo: {
+    marginTop: 8,
+    alignItems: "center",
+  },
+  searchResultText: {
+    fontSize: 12,
+    color: "#7f8c8d",
+    fontWeight: "500",
+  },
+  searchQueryText: {
+    fontStyle: "italic",
+    color: "#3498db",
+  },
+
+  // ✅ Empty search result styles
+  emptySearchContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptySearchTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#7f8c8d",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySearchText: {
+    fontSize: 14,
+    color: "#95a5a6",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  clearSearchResultButton: {
+    backgroundColor: "#3498db",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  clearSearchResultText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  // ✅ Highlight text style
+  highlightText: {
+    backgroundColor: "#fff3cd",
+    color: "#856404",
+    fontWeight: "bold",
   },
 });
