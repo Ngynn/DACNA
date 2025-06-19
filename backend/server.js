@@ -39,8 +39,8 @@ const pool = new Pool({
   user: "postgres",
   host: "localhost",
   database: "QLNK",
-  password: "longthanhquoc213",
-  //  password: "123123",
+  //password: "longthanhquoc213",
+    password: "123123",
   port: 5432,
 });
 
@@ -857,7 +857,7 @@ app.get('/api/backup', verifyToken, async (req, res) => {
   const dumpCommand = `pg_dump -U postgres -d QLNK -F c -f "${filePath}"`;
 
   // pass postgre, nhớ tự chỉnh lại pass của bản thân
-  const env = { ...process.env, PGPASSWORD: "kyanh" };
+  const env = { ...process.env, PGPASSWORD: "longthanhquoc213" };
 
   exec(dumpCommand, { env }, (error, stdout, stderr) => {
     if (error) {
