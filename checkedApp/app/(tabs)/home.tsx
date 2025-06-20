@@ -64,6 +64,8 @@ export default function Home() {
       // Lấy token từ AsyncStorage
       const token = await AsyncStorage.getItem("token");
 
+      console.log("Token:", token);
+
       if (!token) {
         // Nếu không có token, chuyển về trang đăng nhập
         Alert.alert(
