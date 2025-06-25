@@ -39,8 +39,8 @@ const pool = new Pool({
   user: "postgres",
   host: "localhost",
   database: "QLNK",
-  //password: "longthanhquoc213",
-    password: "123123",
+  password: "longthanhquoc213",
+  // password: "123123",
   port: 5432,
 });
 
