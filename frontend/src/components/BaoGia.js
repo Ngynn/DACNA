@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 
 // template co san
-function getBaoGiaEmailHTML(materialList) {
+function getBaoGiaEmailHTML(materialList, supplierName) {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -32,25 +32,27 @@ function getBaoGiaEmailHTML(materialList) {
     </tr>
     <tr>
       <td bgcolor="#fff" style="padding:40px;">
-        <h2 style="color:#383e56;">Kính gửi Quý Nhà Cung Cấp,</h2>
-        <p>Chúng tôi muốn yêu cầu báo giá cho các vật tư sau:</p>
+        <h2 style="color:#383e56;">Kính gửi Quý Nhà Cung Cấp: <span style="color:#1976d2;">${supplierName || ""}</span></h2>
+        <p>Chúng tôi (Công ty KKTL) muốn yêu cầu báo giá cho các vật tư sau:</p>
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:20px;">
           <thead>
             <tr style="background:#f1f1f1;">
+              <th style="text-align:center;">STT</th>
               <th style="text-align:left;">Tên vật tư</th>
               <th style="text-align:right;">Số lượng</th>
             </tr>
           </thead>
           <tbody>
-            ${materialList.map(m => `
+            ${materialList.map((m, idx) => `
               <tr>
+                <td style="text-align:center;">${idx + 1}</td>
                 <td>${m.tenvattu}</td>
                 <td style="text-align:right;">${m.soluong || ""}</td>
               </tr>
             `).join("")}
           </tbody>
         </table>
-        <p>Trân trọng,<br>Công ty KKTL</p>
+        <p>Trân trọng,<br><b>Công ty KKTL</b></p>
         <div style="margin-top:40px;text-align:center;">
           <a href="#" style="background-color: #01c8c8; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Gửi Phản Hồi</a>
         </div>
@@ -189,7 +191,7 @@ const BaoGia = () => {
               }));
             if (materialForSupplier.length === 0) return null;
 
-            const emailHtml = getBaoGiaEmailHTML(materialForSupplier);
+            const emailHtml = getBaoGiaEmailHTML(materialForSupplier, supplier.tenncc);
 
             return axios.post(
               "http://localhost:3000/api/send-email",
