@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 
 // template co san
-function getBaoGiaEmailHTML(materialList, supplierName) {
+function getBaoGiaEmailHTML(materialList, supplierName, supplierInfo = {}) {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -33,6 +33,12 @@ function getBaoGiaEmailHTML(materialList, supplierName) {
     <tr>
       <td bgcolor="#fff" style="padding:40px;">
         <h2 style="color:#383e56;">Kính gửi Quý Nhà Cung Cấp: <span style="color:#1976d2;">${supplierName || ""}</span></h2>
+        <div style="margin-bottom:15px;">
+          <b>Thông tin nhà cung cấp:</b><br>
+          Email: <a href="mailto:${supplierInfo.email || ""}">${supplierInfo.email || ""}</a><br>
+          SĐT: ${supplierInfo.sodienthoai || ""}<br>
+          Địa chỉ: ${supplierInfo.diachi || ""}
+        </div>
         <p>Chúng tôi (Công ty KKTL) muốn yêu cầu báo giá cho các vật tư sau:</p>
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:20px;">
           <thead>
@@ -53,8 +59,10 @@ function getBaoGiaEmailHTML(materialList, supplierName) {
           </tbody>
         </table>
         <p>Trân trọng,<br><b>Công ty KKTL</b></p>
-        <div style="margin-top:40px;text-align:center;">
-          <a href="#" style="background-color: #01c8c8; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Gửi Phản Hồi</a>
+        <div style="margin-top:30px;">
+          <h4>Thông tin về chúng tôi:</h4>
+          <p>Email: <a href="mailto:KKTLMedical@gmail.com">KKTLMedical@gmail.com</a><br>
+          SĐT: 0123456789</p>
         </div>
       </td>
     </tr>
@@ -70,7 +78,7 @@ function getBaoGiaEmailHTML(materialList, supplierName) {
 }
 
 const BaoGia = () => {
-    const [materialQuantities, setMaterialQuantities] = useState({});
+  const [materialQuantities, setMaterialQuantities] = useState({});
 
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
@@ -191,7 +199,15 @@ const BaoGia = () => {
               }));
             if (materialForSupplier.length === 0) return null;
 
-            const emailHtml = getBaoGiaEmailHTML(materialForSupplier, supplier.tenncc);
+            const emailHtml = getBaoGiaEmailHTML(
+              materialForSupplier,
+              supplier.tenncc,
+              {
+                email: supplier.email,
+                sodienthoai: supplier.sodienthoai,
+                diachi: supplier.diachi
+              }
+            );
 
             return axios.post(
               "http://localhost:3000/api/send-email",
