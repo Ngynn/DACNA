@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { TextField } from "@mui/material";
 import axios from "axios";
 import {
     Box,
@@ -26,6 +27,8 @@ const LoHang = () => {
     const [currentPage, setCurrentPage] = useState(0); // Trang hiện tại
     const [rowsPerPageDialog, setRowsPerPageDialog] = useState(10); // Số dòng hiển thị mỗi trang trong Dialog
     const [currentPageDialog, setCurrentPageDialog] = useState(0); // Trang hiện tại trong Dialog
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterStatus, setFilterStatus] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -122,8 +125,17 @@ const LoHang = () => {
         });
     };
 
+    // tim kiém va loc theo trang thai
+    const filteredLoHangList = loHangList.filter((loHang) => {
+        const matchSearch =
+            loHang.idlohang.toString().includes(searchTerm) ||
+            (loHang.tenncc && loHang.tenncc.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchStatus = filterStatus ? loHang.trangthai === filterStatus : true;
+        return matchSearch && matchStatus;
+    });
+
     // Phân trang danh sách lô hàng
-    const paginatedLoHangList = loHangList.slice(
+    const paginatedLoHangList = filteredLoHangList.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
     );
@@ -137,6 +149,34 @@ const LoHang = () => {
     return (
         <Box sx={{ padding: "20px" }}>
             <h1>Danh Sách Lô Hàng</h1>
+            {/* tim kiem va loc */}
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                <TextField
+                    label="Tìm kiếm theo ID hoặc NCC"
+                    variant="outlined"
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(0); // Reset về trang đầu khi tìm kiếm
+                    }}
+                />
+                <Select
+                    value={filterStatus}
+                    onChange={(e) => {
+                        setFilterStatus(e.target.value);
+                        setCurrentPage(0); // Reset về trang đầu khi lọc
+                    }}
+                    displayEmpty
+                    size="small"
+                    sx={{ minWidth: 150 }}
+                >
+                    <MenuItem value="">Tất cả trạng thái</MenuItem>
+                    <MenuItem value="Đã nhập">Đã nhập</MenuItem>
+                    <MenuItem value="Đã Hủy">Đã Hủy</MenuItem>
+                </Select>
+            </Box>
+            {/* danh sach lo hang */}
             <Table>
                 <TableHead>
                     <TableRow>
@@ -201,7 +241,7 @@ const LoHang = () => {
             {/* Phân trang danh sách lô hàng */}
             <TablePagination
                 component="div"
-                count={loHangList.length}
+                count={filteredLoHangList.length}
                 page={currentPage}
                 onPageChange={(e, newPage) => setCurrentPage(newPage)}
                 rowsPerPage={rowsPerPage}
