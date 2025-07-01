@@ -34,11 +34,10 @@ const SoSanhBaoGia = () => {
     };
 
     // Tìm công ty có tổng tiền thấp nhất và so sánh giá từng mặt hàng
-    const getBestCompanyByTotal = (chartData) => {
-        if (chartData.length === 0) return null;
-        return chartData.reduce((best, company) => {
-            return company.total < best.total ? company : best; 
-        });
+    const getBestCompaniesByTotal = (chartData) => {
+        if (chartData.length === 0) return [];
+        const minTotal = Math.min(...chartData.map(c => c.total));
+        return chartData.filter(c => c.total === minTotal);
     };
 
     // tim cong ty co gia thap nhat cho tung vat tu
@@ -65,7 +64,7 @@ const SoSanhBaoGia = () => {
         total: calculateTotalForCompany(company.data),
     }));
 
-    const bestCompanyByTotal = getBestCompanyByTotal(chartData);
+    const bestCompaniesByTotal = getBestCompaniesByTotal(chartData);
     const bestCompanyByItem = getBestCompanyByItem(companyData);
 
     // lay danh sach tat ca mat hang tu tat ca cong ty
@@ -128,9 +127,13 @@ const SoSanhBaoGia = () => {
             {/* Hiển thị đánh giá */}
             <Box sx={{ marginTop: "40px" }}>
                 <h3>Đánh Giá</h3>
-                {bestCompanyByTotal && (
+                {bestCompaniesByTotal.length > 0 && (
                     <Typography variant="body1">
-                        Công ty có tổng tiền thấp nhất: <strong>{bestCompanyByTotal.name.replace(".xlsx", "")}</strong> với tổng tiền <strong>{bestCompanyByTotal.total.toLocaleString("vi-VN")} VNĐ</strong>.
+                        Công ty có tổng tiền thấp nhất:{" "}
+                        <strong>
+                            {bestCompaniesByTotal.map(c => c.name.replace(".xlsx", "")).join(", ")}
+                        </strong>{" "}
+                        với tổng tiền <strong>{bestCompaniesByTotal[0].total.toLocaleString("vi-VN")} VNĐ</strong>.
                     </Typography>
                 )}
                 <Typography variant="body1" sx={{ marginTop: "20px" }}>
